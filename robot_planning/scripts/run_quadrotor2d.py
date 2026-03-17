@@ -17,15 +17,15 @@ from jax import profiler
 import matplotlib.pyplot as plt
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "False"
-jax.config.update('jax_platform_name', 'gpu')
+# jax.config.update('jax_platform_name', 'gpu')
 from jax.lib import xla_bridge
 print(xla_bridge.get_backend().platform)
 
 
 def main():
-    # agent_name = "baseline"
+    agent_name = "baseline"
     # agent_name = "cbf"
-    agent_name = "ncbf"
+    # agent_name = "ncbf"
 
     config_path = "configs/run_quadrotor2d.cfg"
     config_data = ConfigParser.ConfigParser()
