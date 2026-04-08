@@ -7,25 +7,25 @@
 
 # Core scientific computing
 matplotlib==3.9.2
-numpy==1.26.4
-scipy==1.14.1
+numpy==2.4.4
+scipy==1.17.1
 torch==2.5.1
 tqdm==4.67.0
 pytest==8.4.1
 
 # JAX ecosystem (versions must be compatible)
-jax==0.4.24
-jaxlib==0.4.24
-flax==0.8.1
-optax==0.1.8
-jaxtyping==0.2.36
-einops==0.8.0
+jax[cuda13]==0.9.2
+jaxlib==0.9.2
+flax==0.12.6
+optax==0.2.8
+jaxtyping==0.3.9
+einops==0.8.2
 
 # TensorFlow Probability for distributions
 tensorflow-probability[jax]==0.25.0
 
 # Checkpoint management for neural networks
-orbax-checkpoint==0.5.3
+orbax-checkpoint==0.11.34
 
 # Configuration and utilities
 attrs==24.2.0
@@ -47,3 +47,7 @@ moviepy==2.0.0
 
 # Local packages
 -e ./og
+
+typer
+colour
+setuptools==81.0.0
