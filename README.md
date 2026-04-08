@@ -25,6 +25,21 @@ With uv (for gpu):
 
 ```
 
+### Fixes
+
+Install additional dependencies missing from the previous requirements.txt:
+
+```
+uv pip install typer colour 'setuptools==81.0.0'
+```
+
+Make a directory to store generated offline dataset (otherwise `mkdir` fails):
+
+```bash
+# From the project root
+mkdir robot_planning/experiments
+```
+
 **TODO: NEED TO BITE THE BULLET AND UPDATE THE PROJECT TO USE UTKU'S GPU**
 
 ## Running
@@ -35,4 +50,3 @@ To run the various environments in scripts, you must be in the scripts folder, o
 cd robot_planning/scripts
 python3 run_quadrotor2d.py
 ```
-
