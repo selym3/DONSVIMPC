@@ -47,3 +47,8 @@ moviepy==2.0.0
 
 # Local packages
 -e ./og
+
+# Additional packages
+typer==0.24.1
+colour==0.1.5
+setuptools==81.0.0

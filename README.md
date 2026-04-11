@@ -27,12 +27,6 @@ With uv (for gpu):
 
 ### Fixes
 
-Install additional dependencies missing from the previous requirements.txt:
-
-```
-uv pip install typer colour 'setuptools==81.0.0'
-```
-
 Make a directory to store generated offline dataset (otherwise `mkdir` fails):
 
 ```bash
