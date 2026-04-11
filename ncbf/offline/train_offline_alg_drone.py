@@ -106,8 +106,12 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
 
         value_net_cls = ft.partial(MLP, cfg.hids, act)
         value_net_def = ValueNet(value_net_cls, nh, Vh_act)
-        value_net_tx = get_default_tx(as_schedule(cfg.lr).make(), as_schedule(cfg.wd).make())
-        value_net = TrainState.create_from_def(key_quantile, value_net_def, (obs_mean,), value_net_tx)
+        value_net_tx = get_default_tx(
+            as_schedule(cfg.lr).make(), as_schedule(cfg.wd).make()
+        )
+        value_net = TrainState.create_from_def(
+            key_quantile, value_net_def, (obs_mean,), value_net_tx
+        )
         ema = tree_copy(value_net.params)
 
         zero = jnp.array(0, dtype=jnp.int32)
@@ -120,12 +124,16 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
         bTp1h_Vh = jax_vmap(self.value_net.apply, rep=2)(b_traj.Tp1_obs)
 
         # max_gae_fn = ft.partial(get_max_gae, self.cfg.disc_gamma, self.cfg.gae_lambda)
-        max_gae_fn = ft.partial(get_max_gae_term, self.cfg.disc_gamma, self.cfg.gae_lambda)
-        bTh_Qh = jax_vmap(max_gae_fn)(b_traj.Th_h, bTp1h_Vh, b_traj.Th_h, b_traj.T_isterm)
+        max_gae_fn = ft.partial(
+            get_max_gae_term, self.cfg.disc_gamma, self.cfg.gae_lambda
+        )
+        bTh_Qh = jax_vmap(max_gae_fn)(
+            b_traj.Th_h, bTp1h_Vh, b_traj.Th_h, b_traj.T_isterm
+        )
         # 3: Make the dataset by flattening (b, T) -> (b * T,)
         bT_obs = b_traj.Tp1_obs[:, :-1]
         bT_batch = TrainOfflineDroneAlg.Batch(bT_obs, b_traj.Th_h, bTh_Qh)
-        b_batch = jax.tree_map(merge01, bT_batch)
+        b_batch = jax.tree_util.tree_map(merge01, bT_batch)
         #  gae and observation values for each state, not entire trajectories so we can just merge them into a single array.
         # ipdb.set_trace()
         return b_batch
@@ -143,23 +151,27 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
         # 2: Shuffle and reshape
         key_shuffle, key_self = jr.split(self.key, 2)
         rand_idxs = jr.permutation(key_shuffle, jnp.arange(b_dset.batch_size))
-        b_dset = jax.tree_map(lambda x: x[rand_idxs], b_dset)
+        b_dset = jax.tree_util.tree_map(lambda x: x[rand_idxs], b_dset)
         mb_dset = tree_split_dims(b_dset, (n_batches, batch_size))
         # ipdb.set_trace()
 
         # 3: Perform value function and policy updates.
-        def updates_body(alg_: TrainOfflineDroneAlg, b_batch: TrainOfflineDroneAlg.Batch):
+        def updates_body(
+            alg_: TrainOfflineDroneAlg, b_batch: TrainOfflineDroneAlg.Batch
+        ):
             return alg_._update_value(b_batch)
 
         new_self, info = lax.scan(updates_body, self, mb_dset, length=n_batches)
         # Take the mean.
-        info = jax.tree_map(jnp.mean, info)
+        info = jax.tree_util.tree_map(jnp.mean, info)
 
         return new_self.replace(key=key_self, update_idx=self.update_idx + 1), info
 
     def _update_value(self, batch: Batch) -> tuple["TrainOfflineDroneAlg", FloatDict]:
         def get_Vh_loss(params):
-            bh_Vh_resid = jax.vmap(ft.partial(self.value_net.apply_with, params=params))(batch.b_obs)
+            bh_Vh_resid = jax.vmap(
+                ft.partial(self.value_net.apply_with, params=params)
+            )(batch.b_obs)
             # bh_Vh = batch.bh_h + bh_Vh_resid
             bh_Vh = bh_Vh_resid
             loss_Vh = jnp.mean((bh_Vh - batch.bh_Qh) ** 2)
@@ -239,7 +251,9 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
 
         # Compute the GAE estimate of the value function target
         # (i.e., interpolated version between Th_h_diisc_eval and Th_Vh_eval)
-        max_gae_fn = ft.partial(get_max_gae_term, self.cfg.disc_gamma, self.cfg.gae_lambda)
+        max_gae_fn = ft.partial(
+            get_max_gae_term, self.cfg.disc_gamma, self.cfg.gae_lambda
+        )
         Th_Qh_gae = max_gae_fn(Th_h_eval, Tp1h_Vh_eval, Th_h_eval, T_isterm)
 
         # Evaluate a smoothed (EMA) version of the predicted value function.
@@ -250,4 +264,13 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
             "Vh_evaltraj_err": jnp.mean((Th_Vh_eval - Th_h_disc_eval) ** 2),
         }
 
-        return self.EvalData(bb_pos, bbh_Vh, Th_h_eval, Th_h_disc_eval, Th_Qh_gae, Th_Vh_eval, Th_Vh_eval_ema, info)
+        return self.EvalData(
+            bb_pos,
+            bbh_Vh,
+            Th_h_eval,
+            Th_h_disc_eval,
+            Th_Qh_gae,
+            Th_Vh_eval,
+            Th_Vh_eval_ema,
+            info,
+        )

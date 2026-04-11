@@ -46,7 +46,9 @@ def reset_default_types():
     jax.numpy.int_ = jnp.int32 if dtypes.int_ == np.int32 else jnp.int64
     jax.numpy.uint = jnp.uint32 if dtypes.uint == np.uint32 else jnp.uint64
     jax.numpy.float_ = jnp.float32 if dtypes.float_ == np.float32 else jnp.float64
-    jax.numpy.complex_ = jnp.complex64 if dtypes.complex_ == np.complex64 else jnp.complex128
+    jax.numpy.complex_ = (
+        jnp.complex64 if dtypes.complex_ == np.complex64 else jnp.complex128
+    )
 
 
 def get_cpu_device(idx: int = 0):
@@ -76,7 +78,9 @@ def rep_vmap(fn: _F, rep: int, in_axes: int | Sequence[Any] = 0, **kwargs) -> _F
     return fn
 
 
-def jax_vmap(fn: _F, in_axes: int | Sequence[Any] = 0, out_axes: Any = 0, rep: int = None) -> _F:
+def jax_vmap(
+    fn: _F, in_axes: int | Sequence[Any] = 0, out_axes: Any = 0, rep: int = None
+) -> _F:
     if rep is not None:
         return rep_vmap(fn, rep=rep, in_axes=in_axes, out_axes=out_axes)
 
@@ -92,7 +96,15 @@ def jax_jit_np(
     *args,
     **kwargs,
 ) -> _F:
-    jit_fn = jax.jit(fn, static_argnums, static_argnames, donate_argnums, device, *args, **kwargs)
+    jit_fn = jax.jit(
+        fn,
+        static_argnums=static_argnums,
+        static_argnames=static_argnames,
+        donate_argnums=donate_argnums,
+        device=device,
+        *args,
+        **kwargs,
+    )
 
     def wrapper(*args, **kwargs):
         return jax2np(jit_fn(*args, **kwargs))
@@ -100,7 +112,9 @@ def jax_jit_np(
     return wrapper
 
 
-def concat_at_front(arr1: Float[Arr, "nx"], arr2: Float[Arr, "T nx"], axis: int = 0) -> Float[Arr, "Tp1 nx"]:
+def concat_at_front(
+    arr1: Float[Arr, "nx"], arr2: Float[Arr, "T nx"], axis: int = 0
+) -> Float[Arr, "Tp1 nx"]:
     """
     :param arr1: (nx, )
     :param arr2: (T, nx)
@@ -115,7 +129,9 @@ def concat_at_front(arr1: Float[Arr, "nx"], arr2: Float[Arr, "T nx"], axis: int 
     return jnp.concatenate([jnp.expand_dims(arr1, axis=axis), arr2], axis=axis)
 
 
-def concat_at_end(arr1: Float[Arr, "T nx"], arr2: Float[Arr, "nx"], axis: int = 0) -> Float[Arr, "Tp1 nx"]:
+def concat_at_end(
+    arr1: Float[Arr, "T nx"], arr2: Float[Arr, "nx"], axis: int = 0
+) -> Float[Arr, "Tp1 nx"]:
     """
     :param arr1: (T, nx)
     :param arr2: (nx, )

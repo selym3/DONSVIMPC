@@ -26,6 +26,8 @@ from robot_planning.helper.path_utils import get_root_dir
 
 
 counter_clock_wise = 1
+
+
 @define
 class TrainerCfg(Cfg):
     n_iters: int
@@ -61,7 +63,15 @@ def plot_eval(idx: int, plot_dir: pathlib.Path, data: TrainOfflineAlg.EvalData):
     # cmap = "RdBu_r"
     cmap = get_BuRd()
     for ii, ax in enumerate(axes):
-        cm = ax.scatter(b_pos[:, 0], b_pos[:, 1], c=bh_Vh[:, ii], alpha=0.9, s=2, cmap=cmap, norm=CenteredNorm())
+        cm = ax.scatter(
+            b_pos[:, 0],
+            b_pos[:, 1],
+            c=bh_Vh[:, ii],
+            alpha=0.9,
+            s=2,
+            cmap=cmap,
+            norm=CenteredNorm(),
+        )
         fig.colorbar(cm, ax=ax)
         ax.set_title(labels[ii])
     fig_path = plot_dir / f"Vh/Vh_{idx:08d}.jpg"
@@ -119,11 +129,13 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
     # hids = [64, 64]
     # hids = [32, 32]
     lr = Constant(3e-4)
-    wd = Constant(5e-2) # weight decay for nn, increasing it will alleviate overfitting of ncbf
+    wd = Constant(
+        5e-2
+    )  # weight decay for nn, increasing it will alleviate overfitting of ncbf
     n_batches = 1
     # disc_gamma = 0.92 # discount factor, increasing it will augment unsafe zone
     # disc_gamma = 0.93 # discount factor, increasing it will augment unsafe zone
-    disc_gamma = 0.94 # discount factor, increasing it will augment unsafe zone
+    disc_gamma = 0.94  # discount factor, increasing it will augment unsafe zone
     gae_lambda = 0.95
     # gae_lambda = 1.5
     ema_step = 1e-3
@@ -132,7 +144,9 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
 
     # Vh_act = "softplus"
     Vh_act = "identity"
-    cfg = TrainOfflineCfg("relu", Vh_act, hids, lr, wd, n_batches, disc_gamma, gae_lambda, ema_step)
+    cfg = TrainOfflineCfg(
+        "relu", Vh_act, hids, lr, wd, n_batches, disc_gamma, gae_lambda, ema_step
+    )
     alg = TrainOfflineAlg.create(jr.PRNGKey(123456), obs_mean, obs_std, nh, cfg)
 
     run = wandb.init(project="ar_cbf_offline", config=cfg.asdict())
@@ -145,7 +159,9 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
     plot_dir = mkdir(run_dir / "plot")
     ckpt_dir = mkdir(run_dir / "ckpts")
 
-    ckpt_manager = get_ckpt_manager_sync(ckpt_dir.absolute(), max_to_keep=trainer_cfg.ckpt_max_keep)
+    ckpt_manager = get_ckpt_manager_sync(
+        ckpt_dir.absolute(), max_to_keep=trainer_cfg.ckpt_max_keep
+    )
 
     rng = np.random.default_rng(seed=12345)
     for idx in range(trainer_cfg.n_iters):
@@ -165,7 +181,9 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
 
         if should_eval:
             logger.info("Eval...")
-            data = jax2np(alg.eval(T_obs_eval, Th_h_eval, counter_clock_wise = counter_clock_wise))
+            data = jax2np(
+                alg.eval(T_obs_eval, Th_h_eval, counter_clock_wise=counter_clock_wise)
+            )
             logger.info("Eval... Done!")
             plot_eval(idx, plot_dir, data)
 

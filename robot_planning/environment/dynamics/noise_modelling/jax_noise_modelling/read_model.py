@@ -85,13 +85,13 @@ if __name__ == "__main__":
     num_training_batches = int((1 - validation_split) * num_batches)
 
     model = StateConditionedVAE()
-    val_data = jax.tree_map(
+    val_data = jax.tree_util.tree_map(
         lambda x: x[num_training_batches * batch_size :], (disturbances, states)
     )
-    boundary_val_data = jax.tree_map(
+    boundary_val_data = jax.tree_util.tree_map(
         lambda x: x[num_training_batches * batch_size :], (boundary_disturbances, boundary_states)
     )
-    center_val_data = jax.tree_map(
+    center_val_data = jax.tree_util.tree_map(
         lambda x: x[num_training_batches * batch_size :], (center_disturbances, center_states)
     )
 

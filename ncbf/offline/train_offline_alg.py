@@ -128,7 +128,7 @@ class TrainOfflineAlg(struct.PyTreeNode):
         # 3: Make the dataset by flattening (b, T) -> (b * T,)
         bT_obs = b_traj.Tp1_obs[:, :-1]
         bT_batch = TrainOfflineAlg.Batch(bT_obs, b_traj.Th_h, bTh_Qh)
-        b_batch = jax.tree_map(merge01, bT_batch)
+        b_batch = jax.tree_util.tree_map(merge01, bT_batch)
         #  gae and observation values for each state, not entire trajectories so we can just merge them into a single array.
         # ipdb.set_trace()
         return b_batch
@@ -146,7 +146,7 @@ class TrainOfflineAlg(struct.PyTreeNode):
         # 2: Shuffle and reshape
         key_shuffle, key_self = jr.split(self.key, 2)
         rand_idxs = jr.permutation(key_shuffle, jnp.arange(b_dset.batch_size))
-        b_dset = jax.tree_map(lambda x: x[rand_idxs], b_dset)
+        b_dset = jax.tree_util.tree_map(lambda x: x[rand_idxs], b_dset)
         mb_dset = tree_split_dims(b_dset, (n_batches, batch_size))
         # ipdb.set_trace()
 
@@ -155,7 +155,7 @@ class TrainOfflineAlg(struct.PyTreeNode):
             return alg_._update_value(b_batch)
         new_self, info = lax.scan(updates_body, self, mb_dset, length=n_batches)
         # Take the mean.
-        info = jax.tree_map(jnp.mean, info)
+        info = jax.tree_util.tree_map(jnp.mean, info)
 
         return new_self.replace(key=key_self, update_idx=self.update_idx + 1), info
 

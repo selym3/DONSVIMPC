@@ -80,18 +80,18 @@ if __name__ == "__main__":
     states = states[: num_batches * batch_size]
     num_training_batches = int((1 - validation_split) * num_batches)
     num_val_batches = num_batches - num_training_batches
-    training_data = jax.tree_map(
+    training_data = jax.tree_util.tree_map(
         lambda x: x[: num_training_batches * batch_size], (disturbances, states)
     )
-    val_data = jax.tree_map(
+    val_data = jax.tree_util.tree_map(
         lambda x: x[num_training_batches * batch_size :], (disturbances, states)
     )
 
     # Reshape to add a batch dimension
-    training_data = jax.tree_map(
+    training_data = jax.tree_util.tree_map(
         lambda x: x.reshape(num_training_batches, batch_size, -1), training_data
     )
-    val_data = jax.tree_map(
+    val_data = jax.tree_util.tree_map(
         lambda x: x.reshape(num_val_batches, batch_size, -1), val_data
     )
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
         # Training
         for batch in tqdm(range(num_batches)):
             # Get the batch
-            w, x = jax.tree_map(lambda x: x[batch], training_data)
+            w, x = jax.tree_util.tree_map(lambda x: x[batch], training_data)
 
             # Compute the loss and gradients
             prng_key, step_key = jax.random.split(prng_key)
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         val_losses = {"recon_loss": 0.0, "kl_div": 0.0}
         for batch in range(num_batches):
             # Get the batch
-            w, x = jax.tree_map(lambda x: x[batch], val_data)
+            w, x = jax.tree_util.tree_map(lambda x: x[batch], val_data)
 
             # Compute the loss
             prng_key, key = jax.random.split(prng_key)
@@ -189,7 +189,7 @@ if __name__ == "__main__":
             )
 
     # Get the encodings for all of the validation data
-    val_data = jax.tree_map(
+    val_data = jax.tree_util.tree_map(
         lambda x: x.reshape(num_val_batches * batch_size, -1), val_data
     )
     keys = jax.random.split(prng_key, val_data[0].shape[0])

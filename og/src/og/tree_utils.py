@@ -75,11 +75,11 @@ def tree_where(cond, x_tree: _PyTree, y_tree: _PyTree) -> _PyTree:
     def tree_where_inner(x, y):
         return jnp.where(cond, x, y)
 
-    return jax.tree_map(tree_where_inner, x_tree, y_tree)
+    return jax.tree_util.tree_map(tree_where_inner, x_tree, y_tree)
 
 
 def tree_copy(tree: _PyTree) -> _PyTree:
-    return jax.tree_map(lambda x: x.copy(), tree)
+    return jax.tree_util.tree_map(lambda x: x.copy(), tree)
 
 
 def tree_len(tree: _PyTree) -> int:
