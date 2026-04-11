@@ -1,4 +1,5 @@
 import jax.numpy as np
+
 aa = np.asarray(5)
 import configparser as ConfigParser
 import pathlib
@@ -15,13 +16,20 @@ import numpy as onp
 
 from robot_planning.batch_experimentation.loggers import AutorallyNpzLogger
 from robot_planning.environment.robots.simulated_robot import SimulatedRobot
-from robot_planning.factory.factories import (collision_checker_factory_base, goal_checker_factory_base,
-                                              logger_factory_base, renderer_factory_base, robot_factory_base)
+from robot_planning.factory.factories import (
+    collision_checker_factory_base,
+    goal_checker_factory_base,
+    logger_factory_base,
+    renderer_factory_base,
+    robot_factory_base,
+)
 from robot_planning.factory.factory_from_config import factory_from_config
 from robot_planning.helper.timer import Timer
 
 
-def set_config(config_data, test_agent, n_traj, control_horizon, cbf_alpha, experiment_index):
+def set_config(
+    config_data, test_agent, n_traj, control_horizon, cbf_alpha, experiment_index
+):
     traj_sampler_name = f"{test_agent}_stochastic_trajectories_sampler"
     noise_sampler_name = config_data.get(traj_sampler_name, "noise_sampler")
 
@@ -46,7 +54,8 @@ def main():
     if clock_wise is False:
         ## for counter clock-wise
         # config_path = "configs/reverse_run_Autorally_CBF_MPPI_for_experiment.cfg"
-        config_path = "configs/reverse_run_Autorally_cluttered_env.cfg"
+        # config_path = "configs/reverse_run_Autorally_cluttered_env.cfg"
+        config_path = "configs/autorally_better_fuckin_work.cfg"
     else:
         ## for clock-wise
         config_path = "configs/run_Autorally_CBF_MPPI_for_experiment.cfg"
@@ -68,9 +77,13 @@ def main():
 
     n_laps_log = 1
 
-    set_config(config_data, test_agent, n_traj, control_horizon, cbf_alpha, experiment_index)
+    set_config(
+        config_data, test_agent, n_traj, control_horizon, cbf_alpha, experiment_index
+    )
 
-    agent: SimulatedRobot = factory_from_config(robot_factory_base, config_data, test_agent + "_agent")
+    agent: SimulatedRobot = factory_from_config(
+        robot_factory_base, config_data, test_agent + "_agent"
+    )
     renderer1 = factory_from_config(renderer_factory_base, config_data, "renderer1")
     if render:
         agent.set_renderer(renderer=renderer1)
@@ -81,7 +94,9 @@ def main():
         evaluator: AutorallyMPPICostEvaluator = controller.cost_evaluator
         goal_checker: AutorallyCartesianGoalChecker = evaluator.goal_checker
         tgt_vel_orig = goal_checker.goal_state[0]
-        loguru.logger.info("Overriding the tgt_vel from {} -> {}!".format(tgt_vel_orig, tgt_vel))
+        loguru.logger.info(
+            "Overriding the tgt_vel from {} -> {}!".format(tgt_vel_orig, tgt_vel)
+        )
         goal_checker.goal_state[0] = tgt_vel
 
     goal_checker_for_checking_vehicle_position = factory_from_config(
@@ -97,7 +112,11 @@ def main():
 
     rng = onp.random.default_rng(seed=12345)
     for traj_idx in range(n_trajs_collect):
-        print("               ===== {:3} / {:3} =====            ".format(traj_idx + 1, n_trajs_collect))
+        print(
+            "               ===== {:3} / {:3} =====            ".format(
+                traj_idx + 1, n_trajs_collect
+            )
+        )
         # [ vx, vy, wz, wF, wR, psi, X, Y ]
         if clock_wise is False:
             ## for reversed (counter clock-wise)
@@ -127,7 +146,9 @@ def main():
         renderer1.render_goal(goal_checker_for_checking_vehicle_position.get_goal())
         while logger.number_of_laps < n_laps_log:
             timer = Timer("Control loop").start()
-            state_next, cost, eval_time, action = agent.take_action_with_controller(return_time=True)
+            state_next, cost, eval_time, action = agent.take_action_with_controller(
+                return_time=True
+            )
 
             logger.calculate_number_of_laps(
                 state_next,
@@ -140,7 +161,9 @@ def main():
                 collision_checker=agent.cost_evaluator.collision_checker,
             )
             logger.calculate_number_of_failures(
-                state_next, dynamics=agent.dynamics, collision_checker=collision_checker_for_failure
+                state_next,
+                dynamics=agent.dynamics,
+                collision_checker=collision_checker_for_failure,
             )
             logger.log()
 

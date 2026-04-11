@@ -1,5 +1,6 @@
 import jax.numpy as np
 import jax
+
 aa = np.arange(5)
 import ipdb
 import loguru
@@ -31,12 +32,14 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "False"
 # jax.config.update('jax_platform_name', 'gpu')
 from jax.lib import xla_bridge
+
 print(xla_bridge.get_backend().platform)
 
 # print(jax.__path__)
 # import os
 # print(os.environ["LD_LIBRARY_PATH"])
 # exit(0)
+
 
 class TestRunAutorallyMPPI(unittest.TestCase):
     @classmethod
@@ -69,7 +72,8 @@ class TestRunAutorallyMPPI(unittest.TestCase):
             edgeitems=30, linewidth=100000, formatter=dict(float=lambda x: "%10.3f" % x)
         )
         # config_path = "configs/run_Autorally_CBF_MPPI_for_experiment.cfg"
-        config_path = "configs/reverse_run_Autorally_CBF_MPPI_for_experiment.cfg"
+        # config_path = "configs/reverse_run_Autorally_CBF_MPPI_for_experiment.cfg"
+        config_path = "configs/autorally_better_fuckin_work.cfg"
         config_data = ConfigParser.ConfigParser()
         config_data.read(config_path)
 
@@ -82,8 +86,18 @@ class TestRunAutorallyMPPI(unittest.TestCase):
             Q_epsi_setting,
             Q_ey_setting,
         )
-        for test_agent, experiment_index, n_traj, horizon, alpha, Q_epsi, Q_ey in experiments:
-            print(f"{test_agent}: {(experiment_index, n_traj, horizon, alpha, Q_epsi, Q_ey)}")
+        for (
+            test_agent,
+            experiment_index,
+            n_traj,
+            horizon,
+            alpha,
+            Q_epsi,
+            Q_ey,
+        ) in experiments:
+            print(
+                f"{test_agent}: {(experiment_index, n_traj, horizon, alpha, Q_epsi, Q_ey)}"
+            )
 
             # Use the experiment_index as the seed.
             seed = 12345 + experiment_index
@@ -145,12 +159,14 @@ class TestRunAutorallyMPPI(unittest.TestCase):
             collision_checker_for_failure = factory_from_config(
                 collision_checker_factory_base,
                 config_data,
-                "my_collision_checker_for_crash"
+                "my_collision_checker_for_crash",
             )
             total_eval_time = 0.0
             eval_times = deque([], maxlen=10)
 
-            nominal_dynamics = factory_from_config(dynamics_factory_base, config_data, "sim_dynamics1")
+            nominal_dynamics = factory_from_config(
+                dynamics_factory_base, config_data, "sim_dynamics1"
+            )
 
             controller: MPPI = agent.controller
             evaluator: AutorallyMPPICostEvaluator = controller.cost_evaluator
@@ -158,7 +174,11 @@ class TestRunAutorallyMPPI(unittest.TestCase):
 
             tgt_vel_orig = goal_checker.goal_state[0]
             if tgt_vel is not None:
-                loguru.logger.info("Overriding the tgt_vel from {} -> {}!".format(tgt_vel_orig, tgt_vel))
+                loguru.logger.info(
+                    "Overriding the tgt_vel from {} -> {}!".format(
+                        tgt_vel_orig, tgt_vel
+                    )
+                )
                 goal_checker.goal_state[0] = tgt_vel
             else:
                 loguru.logger.info("tgt_vel: {}".format(tgt_vel_orig))
@@ -197,7 +217,14 @@ class TestRunAutorallyMPPI(unittest.TestCase):
 
                 while logger.number_of_laps < 10:
                     if logger.number_of_laps > number_of_laps:
-                        print("lap time = ", steps * agent.dynamics.delta_t, " Average lap time = ", accumulated_steps * agent.dynamics.delta_t/logger.number_of_laps)
+                        print(
+                            "lap time = ",
+                            steps * agent.dynamics.delta_t,
+                            " Average lap time = ",
+                            accumulated_steps
+                            * agent.dynamics.delta_t
+                            / logger.number_of_laps,
+                        )
                         steps = 0
                         number_of_laps = logger.number_of_laps
                     timer = Timer("Control loop").start()
@@ -209,11 +236,15 @@ class TestRunAutorallyMPPI(unittest.TestCase):
                     timer_.stop()
                     timer_ = timer.child("take_action_with_controller").start()
                     old_state = agent.state
-                    state_next, cost, eval_time, action = agent.take_action_with_controller(return_time=True)
+                    state_next, cost, eval_time, action = (
+                        agent.take_action_with_controller(return_time=True)
+                    )
                     timer_.stop()
                     timer_ = timer.child("calc_agent_disturb").start()
                     # print(logger.disturbances.shape, logger.sim_states.shape)
-                    logger.calculate_agent_disturbance(state_next, old_state, action, nominal_dynamics)
+                    logger.calculate_agent_disturbance(
+                        state_next, old_state, action, nominal_dynamics
+                    )
                     timer_.stop()
 
                     eval_times.append(eval_time)
@@ -237,7 +268,8 @@ class TestRunAutorallyMPPI(unittest.TestCase):
                     logger.calculate_number_of_failures(
                         state_next,
                         dynamics=agent.dynamics,
-                        collision_checker=collision_checker_for_failure)
+                        collision_checker=collision_checker_for_failure,
+                    )
                     timer_.stop()
                     timer_ = timer.child("logger.log").start()
                     logger.log()
@@ -248,7 +280,6 @@ class TestRunAutorallyMPPI(unittest.TestCase):
                     # print("Average eval time: ", sum(eval_times) / len(eval_times), "Control update rate: ", 1/(sum(eval_times) / len(eval_times)))
                     timer_.stop()
                     timer.stop().print_results()
-
 
                 # Update the final number of laps and save the log
                 logger.calculate_number_of_laps(
@@ -261,6 +292,7 @@ class TestRunAutorallyMPPI(unittest.TestCase):
                 print(f"Mean controller eval time: {total_eval_time / steps}")
                 print(f"Collision number: {logger.number_of_collisions}")
             # renderer1.close()
+
 
 if __name__ == "__main__":
     with ipdb.launch_ipdb_on_exception():

@@ -19,6 +19,7 @@ def dist_to_segment(p, a, b):
     h = jnp.clip(jnp.dot(pa, ba) / jnp.dot(ba, ba), 0.0, 1.0)
     return jnp.linalg.norm(pa - ba * h), h
 
+
 class MapCA:
     def __init__(self, track_path, obstacles_config_data=None):
         """Load a map of a track which consists of line segments
@@ -47,17 +48,37 @@ class MapCA:
 
         self.heading = np.arctan2(self.dif_vecs[1, :], self.dif_vecs[0, :])
         self.heading_rate = np.diff(self.heading, append=self.heading[0].reshape(-1))
-        self.heading_rate = np.where(self.heading_rate > np.pi, self.heading_rate - 2 * np.pi, self.heading_rate)
-        self.heading_rate = np.where(self.heading_rate < -np.pi, self.heading_rate + 2 * np.pi, self.heading_rate)
+        self.heading_rate = np.where(
+            self.heading_rate > np.pi, self.heading_rate - 2 * np.pi, self.heading_rate
+        )
+        self.heading_rate = np.where(
+            self.heading_rate < -np.pi, self.heading_rate + 2 * np.pi, self.heading_rate
+        )
 
-        self.s_total = onp.array(self.s[-1] + np.linalg.norm(self.p[:, -1] - self.p[:, 0]))
+        self.s_total = onp.array(
+            self.s[-1] + np.linalg.norm(self.p[:, -1] - self.p[:, 0])
+        )
         self.obstacles_config_data = obstacles_config_data
 
     def get_obstacles(self):
         if self.obstacles_config_data is not None:
-            obstacles = np.asarray(ast.literal_eval(self.obstacles_config_data.get("my_collision_checker_for_collision", "obstacles")))
-            obstacles_radius = np.asarray(ast.literal_eval(self.obstacles_config_data.get("my_collision_checker_for_collision", "obstacles_radius")))
-            obstacles_info = np.concatenate((obstacles, obstacles_radius[:, None]), axis=1)
+            obstacles = np.asarray(
+                ast.literal_eval(
+                    self.obstacles_config_data.get(
+                        "my_collision_checker_for_collision", "obstacles"
+                    )
+                )
+            )
+            obstacles_radius = np.asarray(
+                ast.literal_eval(
+                    self.obstacles_config_data.get(
+                        "my_collision_checker_for_collision", "obstacles_radius"
+                    )
+                )
+            )
+            obstacles_info = np.concatenate(
+                (obstacles, obstacles_radius[:, None]), axis=1
+            )
             return obstacles_info
 
     def localize_one(self, M, psi, return_index=False):
@@ -75,7 +96,9 @@ class MapCA:
         printi = 0
         if a_0 < a < a_1 or a_1 < a < a_0:
             norm_dist = (
-                np.sign(np.cross(p1 - p0, M - p0)) * np.linalg.norm(np.cross(p1 - p0, M - p0)) / np.linalg.norm(p1 - p0)
+                np.sign(np.cross(p1 - p0, M - p0))
+                * np.linalg.norm(np.cross(p1 - p0, M - p0))
+                / np.linalg.norm(p1 - p0)
             )
             s_dist = np.linalg.norm(np.dot(M - p0, p1 - p0))
         else:
@@ -140,16 +163,21 @@ class MapCA:
         norm_dists = np.where(
             ((a_0s < a) & (a < a_1s)) | ((a_1s < a) & (a < a_0s)),
             np.sign(np.cross(p1s - p0s, M - p0s, axis=0))
-            * np.linalg.norm(np.cross(p1s - p0s, M - p0s, axis=0).reshape((-1, 1)), axis=1)
+            * np.linalg.norm(
+                np.cross(p1s - p0s, M - p0s, axis=0).reshape((-1, 1)), axis=1
+            )
             / np.linalg.norm(p1s - p0s, axis=0),
-            np.sign(np.cross(p1s - p0s, M - p0s, axis=0)) * np.linalg.norm(M - p0s, axis=0),
+            np.sign(np.cross(p1s - p0s, M - p0s, axis=0))
+            * np.linalg.norm(M - p0s, axis=0),
         )
         # if we are along a line segment, get the parallel distance along the nearest segment
         # else we are at a corner between segments and the along-path error is 0
         s_dists = np.where(
             ((a_0s < a) & (a < a_1s)) | ((a_1s < a) & (a < a_0s)),
             np.linalg.norm(
-                np.matmul(np.expand_dims(M - p0s, axis=1), np.expand_dims(p1s - p0s, axis=2)),
+                np.matmul(
+                    np.expand_dims(M - p0s, axis=1), np.expand_dims(p1s - p0s, axis=2)
+                ),
                 axis=0,
             ),
             0,
@@ -179,7 +207,9 @@ class MapCA:
             return head_dists, norm_dists, s_dists
 
     def get_cur_reg_from_s(self, s):
-        nearest = np.argmin(np.abs(s.reshape((-1, 1)) - self.s.reshape((1, -1))), axis=1)
+        nearest = np.argmin(
+            np.abs(s.reshape((-1, 1)) - self.s.reshape((1, -1))), axis=1
+        )
         x0 = self.p[0, nearest]
         y0 = self.p[1, nearest]
         theta0 = np.arctan2(self.dif_vecs[1, nearest], self.dif_vecs[0, nearest])
@@ -265,7 +295,7 @@ class MapCA:
         e_y = np.dot(seg_perp, pos - pt0)
 
         h = p_h[idx]
-        s = (1-h) * s_aug[idx] + h * s_aug[idx + 1]
+        s = (1 - h) * s_aug[idx] + h * s_aug[idx + 1]
 
         # Finally, compute psi.
         theta = self.heading[idx]
