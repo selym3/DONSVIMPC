@@ -2,10 +2,10 @@ Commands to run for collecting offline dataset + training:
 
 # Step 1 - Collect data
 
-In the `robot_planning/scripts` folder:
+In the `robot_planning/scripts/functional_scripts` folder:
 
 ```bash
-python functional_scripts/collect_offline_dset.py
+python collect_offline_dset.py
 ```
 
 This collects trajectories and saves the dataset to `data/raw_data.pkl`.

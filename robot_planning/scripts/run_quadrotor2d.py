@@ -15,10 +15,11 @@ import os
 import jax
 from jax import profiler
 import matplotlib.pyplot as plt
-
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "False"
-print(jax.default_backend())
+# jax.config.update('jax_platform_name', 'gpu')
+from jax.lib import xla_bridge
+print(xla_bridge.get_backend().platform)
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
     config_path = "configs/run_quadrotor2d.cfg"
     config_data = ConfigParser.ConfigParser()
     config_data.read(config_path)
-    agent1 = factory_from_config(robot_factory_base, config_data, agent_name + "_agent")
+    agent1 = factory_from_config(robot_factory_base, config_data, agent_name+'_agent')
     render = True
 
     goal_checker_for_checking_quadrotor_position = factory_from_config(
@@ -39,16 +40,14 @@ def main():
     )
 
     if render:
-        renderer1 = factory_from_config(renderer_factory_base, config_data, "renderer1")
+        renderer1 = factory_from_config(renderer_factory_base, config_data, 'renderer1')
         agent1.set_renderer(renderer=renderer1)
         renderer1.render_goal(goal_checker_for_checking_quadrotor_position.get_goal())
 
-    while not (agent1.cost_evaluator.goal_checker.check(agent1.state.reshape((-1, 1)))):
-        # while True:
+    while not (agent1.cost_evaluator.goal_checker.check(agent1.state.reshape((-1, 1))) ):
+    # while True:
         timer = Timer("Control loop").start()
-        state_next_1, cost_1, eval_time_1, action_1 = (
-            agent1.take_action_with_controller(return_time=True)
-        )
+        state_next_1, cost_1, eval_time_1, action_1 = agent1.take_action_with_controller(return_time=True)
         print("agent 1 current state: ", state_next_1)
         # timer.stop().print_results()
         timer.stop().print_control_freq_result()
@@ -58,5 +57,6 @@ def main():
             break
 
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main()
