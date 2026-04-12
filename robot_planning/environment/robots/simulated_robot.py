@@ -288,6 +288,7 @@ class SimulatedRobot(Robot):
         start_time = time.perf_counter()
         timer_ = timer.child("plan").start()
         action = self.controller.plan(state_cur=self.get_state(), warm_start=warm_start, opponent_agents=opponent_agents, logger=logger)
+        print('from control plan', action)
         timer_.stop()
         # if action[0] > self.steering_max:
         #     self.steering_max = action[0]

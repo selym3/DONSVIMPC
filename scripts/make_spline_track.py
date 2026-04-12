@@ -17,7 +17,7 @@ def main(outfile: str, num_points: int, preview: bool):
     ])
     
     # Track parameters
-    track_width = 1.0
+    track_width = 3.0
     
     # 2. Setup periodic spline
     # We close the loop by appending the first waypoint to the end for the spline fit
@@ -34,9 +34,9 @@ def main(outfile: str, num_points: int, preview: bool):
     # 3. Generate the centerline points
     # We generate num_points. To work with your MapCA wrap-around logic, 
     # pts[0] and pts[-1] should be the same point to close the geometry.
-    t_eval = np.linspace(0, t_max, num_points)
+    t_eval = np.linspace(0, t_max, num_points, endpoint=False)
     pts = spline(t_eval) # Centerline (N, 2)
-    
+
     # 4. Calculate Derivatives for Curvature and Boundaries
     # First derivative (tangent)
     deriv = spline.derivative(1)(t_eval)
@@ -57,6 +57,7 @@ def main(outfile: str, num_points: int, preview: bool):
     mag = np.sqrt(mag_sq)
     nx = -dy / mag
     ny = dx / mag
+
     
     # Offset points for inner and outer boundaries
     X_in = pts[:, 0] + nx * (track_width / 2)
@@ -78,6 +79,10 @@ def main(outfile: str, num_points: int, preview: bool):
         # Plot Curvature
         axs[1].plot(t_eval, curvature)
         axs[1].set_title("Curvature ($\kappa$) along track")
+
+        # p = pts
+        # print(p[0], p[-1])
+
         plt.show()
     else:
         # Save in the format expected by MapCA and AutorallyMatplotlibRenderer

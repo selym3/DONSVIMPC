@@ -206,6 +206,7 @@ class MPPI(MpcController):
         v = np.hstack((v, v[:, -1].reshape(v.shape[0], 1)))
         timer_.stop()
         self.set_initial_control_sequence(v)
+        # print('out mppi', u)
         return u
 
     def reset(self):

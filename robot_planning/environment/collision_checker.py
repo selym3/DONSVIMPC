@@ -140,6 +140,7 @@ class AutorallyCollisionChecker(PointCollisionChecker):
     def initialize_from_config(self, config_data, section_name):
         PointCollisionChecker.initialize_from_config(self, config_data, section_name)
         self.track_width = config_data.getfloat(section_name, "track_width")
+        print('READ TRACK WIDTH', self.track_width)
         kinematics_section_name = config_data.get(section_name, "kinematics")
         self.kinematics = factory_from_config(
             kinematics_factory_base, config_data, kinematics_section_name
@@ -155,12 +156,15 @@ class AutorallyCollisionChecker(PointCollisionChecker):
             return self.check_collision_with_boundaries(state_cur)
         else:
             boundary_collisions = self.check_collision_with_boundaries(state_cur)
-            obstacle_collisions = self.check_collision_with_obstacles(cartesian_state_cur)
+            # obstacle_collisions = self.check_collision_with_obstacles(cartesian_state_cur)
             # if the state collided with either a boundary or an obstacle, it returns True
-            return boundary_collisions | obstacle_collisions
+            # print((boundary_collisions | obstacle_collisions))
+            # jax.debug.print('first {x}',x=boundary_collisions | obstacle_collisions)
+            return boundary_collisions # obstacle_collisions
 
     def check_collision_with_boundaries(self, map_state):
         is_oob = (map_state[-2] < -self.track_width) | (self.track_width < map_state[-2])
+        return np.zeros_like(is_oob)
         if map_state.ndim == 1:
             # Single state. (8, )
             return is_oob
@@ -197,6 +201,7 @@ class AutorallyCollisionChecker(PointCollisionChecker):
 
 
 class MPPICollisionChecker(PointCollisionChecker):
+
     def __init__(self, obstacles=None, kinematics=None):
         CollisionChecker.__init__(self, obstacles, kinematics)
         self.check_other_agents = False

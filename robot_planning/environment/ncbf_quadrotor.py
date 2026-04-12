@@ -26,7 +26,8 @@ class QuadrotorNCBF:
 
         if ckpt_path is None:
             # ckpt_path = get_drone_commit_ckpt_dir() / "0007-gamma88/ckpts/00299999/default"
-            ckpt_path = get_drone_commit_ckpt_dir() / "0009-newdset_gamma85/ckpts/00299999/default"
+            # ckpt_path = get_drone_commit_ckpt_dir() / "0009-newdset_gamma85/ckpts/00299999/default"
+            ckpt_path = "/Users/myles/Programming/cornell/cs5757/DONSVIMPC/runs/offline_drone/offline-run-04-08_18-48/ckpts/00020000/default"
 
         lr = Constant(3e-4)
         wd = Constant(1e-2)
