@@ -152,11 +152,8 @@ class TestRunAutorallyMPPI(unittest.TestCase):
             if render:
                 agent.set_renderer(renderer=renderer1)
             goal_checker_for_checking_vehicle_position = agent.cost_evaluator.goal_checker
-            collision_checker_for_failure = factory_from_config(
-                collision_checker_factory_base,
-                config_data,
-                "my_collision_checker_for_crash",
-            )
+            collision_checker_for_failure = agent.cost_evaluator.collision_checker
+
             total_eval_time = 0.0
             eval_times = deque([], maxlen=10)
 

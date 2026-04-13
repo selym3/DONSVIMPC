@@ -15,9 +15,7 @@ def main(outfile: str, num_points: int, preview: bool):
         [3.0, 5.0],
         [0.0, 4.0]
     ])
-    
-    # Track parameters
-    track_width = 3.0
+
     
     # 2. Setup periodic spline
     # We close the loop by appending the first waypoint to the end for the spline fit
@@ -60,18 +58,12 @@ def main(outfile: str, num_points: int, preview: bool):
 
     
     # Offset points for inner and outer boundaries
-    X_in = pts[:, 0] + nx * (track_width / 2)
-    Y_in = pts[:, 1] + ny * (track_width / 2)
-    X_out = pts[:, 0] - nx * (track_width / 2)
-    Y_out = pts[:, 1] - ny * (track_width / 2)
 
     if preview:
         fig, axs = plt.subplots(nrows=2, figsize=(8, 10), layout="constrained")
         
         # Plot Track
         axs[0].plot(pts[:, 0], pts[:, 1], 'r--', label="Centerline")
-        axs[0].plot(X_in, Y_in, 'k', label="Inner Boundary")
-        axs[0].plot(X_out, Y_out, 'k', label="Outer Boundary")
         axs[0].set_aspect("equal")
         axs[0].legend()
         axs[0].set_title("Closed Spline Track")
@@ -90,10 +82,6 @@ def main(outfile: str, num_points: int, preview: bool):
             outfile,
             pts=pts,
             curvature=curvature,
-            X_in=X_in,
-            Y_in=Y_in,
-            X_out=X_out,
-            Y_out=Y_out
         )
         print(f"Saved track with {num_points} points to {outfile}")
 

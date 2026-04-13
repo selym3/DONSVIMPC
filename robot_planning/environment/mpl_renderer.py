@@ -213,8 +213,8 @@ class AutorallyMatplotlibRenderer(Renderer):
         # track_style = dict(color="#E24A33", lw=2, alpha=1.0)
 
         if self.track_lines is None:
-            (line_in,) = ax.plot(self.map["X_in"], self.map["Y_in"], **map_style)
-            (line_out,) = ax.plot(self.map["X_out"], self.map["Y_out"], **map_style)
+            # (line_in,) = ax.plot(self.map["X_in"], self.map["Y_in"], **map_style)
+            # (line_out,) = ax.plot(self.map["X_out"], self.map["Y_out"], **map_style)
 
             track_lines = []
             # Plot centerline.
@@ -232,7 +232,7 @@ class AutorallyMatplotlibRenderer(Renderer):
                     (line,) = ax.plot(xs, ys, **track_style)
                     track_lines.append(line)
 
-            self.track_lines = [line_in, line_out, *track_lines]
+            self.track_lines = [*track_lines]
 
         if self.obs_col is None:
             circs = []
