@@ -637,7 +637,7 @@ class AutorallyMPPICostEvaluator(QuadraticCostEvaluator):
 
         return cost
 
-    # @partial(jax.jit, static_argnums=(0, 4, 5))
+    @partial(jax.jit, static_argnums=(0, 4, 5))
     def evaluate(
         self,
         state_cur,

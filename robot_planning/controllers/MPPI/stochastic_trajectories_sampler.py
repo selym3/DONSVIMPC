@@ -141,7 +141,7 @@ class MPPIStochasticTrajectoriesSampler(StochasticTrajectoriesSampler):
             self, config_data, section_name
         )
 
-    # @partial(jax.jit, static_argnums=(0, 3, 4, 5, 6))
+    @partial(jax.jit, static_argnums=(0, 3, 4, 5, 6))
     def sample(
         self, state_cur, v, control_horizon, control_dim, dynamics, cost_evaluator, control_bounds=None, opponent_agents=None):
         #  state_cur is the current state, v is the nominal control sequence
