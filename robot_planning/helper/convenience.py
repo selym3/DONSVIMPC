@@ -22,6 +22,13 @@ def get_ccrf_track() -> MapCA:
     return MapCA(track_path)
 
 
+
+def get_spline_track() -> MapCA:
+    track_file_name = "spline_track.npz"
+    track_path = AUTORALLY_DYNAMICS_DIR + "/" + track_file_name
+    return MapCA(track_path)
+
+
 def get_ccrf_track_with_obstacles() -> MapCA:
     track_file_name = "ccrf_track_optimal.npz"
     track_path = AUTORALLY_DYNAMICS_DIR + "/" + track_file_name

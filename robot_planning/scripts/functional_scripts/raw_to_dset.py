@@ -15,15 +15,14 @@ from ncbf.ar_task import ConstrCfg, ObsCfg, get_h_vector, state_to_obs
 from ncbf.avoid_utils import get_max_mc
 from ncbf.dset_offline import DsetOffline, S
 from ncbf.scripts.ncbf_config import get_cfgs
-from robot_planning.helper.convenience import get_ccrf_track, plot_track, get_ccrf_track_with_obstacles
-
+from robot_planning.helper.convenience import get_spline_track, get_ccrf_track, plot_track, get_ccrf_track_with_obstacles
 
 def main(pkl_path: pathlib.Path):
     with open(pkl_path, "rb") as f:
         # [ vx vy wz wF wR psi X Y e_psi e_y s ]
         bxT_x = pickle.load(f)
 
-    track = get_ccrf_track()
+    track = get_spline_track() # get_ccrf_track()
 
     # track = get_ccrf_track_with_obstacles()
 
