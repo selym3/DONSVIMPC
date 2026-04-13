@@ -49,7 +49,7 @@ def set_config(
 
 
 def main():
-    clock_wise = False  # False for counter clock-wise
+    clock_wise = True  # False for counter clock-wise
     render = True
     if clock_wise is False:
         ## for counter clock-wise
@@ -58,7 +58,9 @@ def main():
         config_path = "configs/autorally_better_fuckin_work.cfg"
     else:
         ## for clock-wise
-        config_path = "configs/run_Autorally_CBF_MPPI_for_experiment.cfg"
+        # config_path = "configs/run_Autorally_CBF_MPPI_for_experiment.cfg"
+        config_path = "configs/autorally_better_fuckin_work.cfg"
+
     config_data = ConfigParser.ConfigParser()
     config_data.read(config_path)
 
@@ -99,14 +101,8 @@ def main():
         )
         goal_checker.goal_state[0] = tgt_vel
 
-    goal_checker_for_checking_vehicle_position = factory_from_config(
-        goal_checker_factory_base,
-        config_data,
-        "my_goal_checker_for_checking_vehicle_position",
-    )
-    collision_checker_for_failure = factory_from_config(
-        collision_checker_factory_base, config_data, "my_collision_checker_for_crash"
-    )
+    goal_checker_for_checking_vehicle_position = agent.controller.cost_evaluator.goal_checker
+    collision_checker_for_failure = agent.controller.cost_evaluator.collision_checker
 
     bT_x = []
 
@@ -124,6 +120,7 @@ def main():
         else:
             ## clock-wise
             start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.8])
+
         if traj_idx > 0:
             # Sample a random s, and start from there.
             track = agent.controller.dynamics.track
