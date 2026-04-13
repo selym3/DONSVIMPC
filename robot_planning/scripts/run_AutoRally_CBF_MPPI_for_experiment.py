@@ -151,11 +151,7 @@ class TestRunAutorallyMPPI(unittest.TestCase):
             # logger.set_agent(agent=agent)
             if render:
                 agent.set_renderer(renderer=renderer1)
-            goal_checker_for_checking_vehicle_position = factory_from_config(
-                goal_checker_factory_base,
-                config_data,
-                "my_goal_checker_for_checking_vehicle_position",
-            )
+            goal_checker_for_checking_vehicle_position = agent.cost_evaluator.goal_checker
             collision_checker_for_failure = factory_from_config(
                 collision_checker_factory_base,
                 config_data,
@@ -278,7 +274,6 @@ class TestRunAutorallyMPPI(unittest.TestCase):
                         break
                     # print("Average eval time: ", sum(eval_times) / len(eval_times), "Control update rate: ", 1/(sum(eval_times) / len(eval_times)))
                     timer_.stop()
-                    timer.stop().print_results()
 
                 # Update the final number of laps and save the log
                 logger.calculate_number_of_laps(
@@ -290,7 +285,6 @@ class TestRunAutorallyMPPI(unittest.TestCase):
                     logger.shutdown(mean_eval_time=total_eval_time / steps)
                 print(f"Mean controller eval time: {total_eval_time / steps}")
                 print(f"Collision number: {logger.number_of_collisions}")
-                input()
             # renderer1.close()
 
 

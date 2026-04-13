@@ -282,7 +282,6 @@ class MapCA:
 
         p_pt0 = p_points
         p_pt1 = jnp.roll(p_points, -1, axis=0)
-        print(p_pt0, p_pt1)
         p_dist, p_h = jax.vmap(ft.partial(dist_to_segment, pos))(p_pt0, p_pt1)
         idx = jnp.argmin(p_dist)
 
