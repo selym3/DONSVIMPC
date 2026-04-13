@@ -53,74 +53,7 @@ class NCBF:
         hids = [256, 256]
 
         if ckpt_path is None:
-            # ckpt_path = get_commit_ckpt_dir() / "0041-maple-pastr/00001000/default"
-            # ckpt_path = get_commit_ckpt_dir() / "0041-maple-pastr/00050000/default"
-            # ckpt_path = get_commit_ckpt_dir() / "0041-maple-pastr/00099999/default"
-            # ckpt_path = get_commit_ckpt_dir() / "0026-jumpi-sound/ckpts/00099000/default" # counter_clockwise, disturbed, using MPPI data
-            ckpt_path = get_commit_ckpt_dir() / "0025-true-haze/ckpts/00099000/default" # counter_clockwise, disturbed, using Shield-MPPI data
-            # ckpt_path = get_commit_ckpt_dir() / "0023-comfy-shado/ckpts/00099000/default" # counter_clockwise, using MPPI data"
-            # ckpt_path = get_commit_ckpt_dir() / "0024-dandy-lake/ckpts/00099000/default" # counter_clockwise, using Shield-MPPI data
-            # ckpt_path = get_commit_ckpt_dir() / "0076-misun-glade/ckpts/00040000/default" # counter_clockwise cluttered env, using MPPI data
-
-            # # This one uses track_width = 1.3.
-            # ckpt_path = get_commit_ckpt_dir() / "0057-track1.3_v9_horig/00200000/default" # counter_clockwise, using MPPI data, width 1.3
-            # self.h_cfg = get_h_cfg_for(width=1.3)
-
-            # This one uses track_width = 1.2
-            # ckpt_path = get_commit_ckpt_dir() / "0058-track1.2_v9_horig/00100000/default" # counter_clockwise, using MPPI data, width 1.2
-            # self.h_cfg = get_h_cfg_for(width=1.2)
-
-            # # This one uses track_width = 1.2
-            # # Sometime can have some weird behaviors
-            # ckpt_path = get_commit_ckpt_dir() / "0058-track1.2_v9_horig/00200000/default" # counter_clockwise, using MPPI data, width 1.2
-            # self.h_cfg = get_h_cfg_for(width=1.2)
-
-            # Another one using track_width = 1.2
-            # ckpt_path = (
-            #     get_commit_ckpt_dir() / "0060-track1.3_v8_horig/00299999/default"
-            # )  # counter_clockwise, using MPPI data, width 1.2, nominal policy uses vel_tgt=8
-            # self.h_cfg = get_h_cfg_for(width=1.2)
-
-            # Track_width = 1.1
-            # ckpt_path = (
-            #         get_commit_ckpt_dir() / "0063-track1.1_v50_horig_bigdset/00100000/default"
-            # )  # counter_clockwise, using MPPI data, width 1.1, nominal policy uses vel_tgt=50
-            # ckpt_path = (
-            #         get_commit_ckpt_dir() / "0063-track1.1_v50_horig_bigdset/00200000/default"
-            # )  # counter_clockwise, using MPPI data, width 1.1, nominal policy uses vel_tgt=50
-            # self.h_cfg = get_h_cfg_for(width=1.1)
-
-            # Track_width = 1.1, gamma = 0.93
-            # ckpt_path = (
-            #         get_commit_ckpt_dir() / "0064-track1.1_v50_horig_bigdset_gam93/00040000/default"
-            # )  # counter_clockwise, using MPPI data, width 1.1, nominal policy uses vel_tgt=50
-            # self.h_cfg = get_h_cfg_for(width=1.1)
-
-            # Track_width = 1.1, gamma = 0.94
-            # ckpt_path = (
-            #         get_commit_ckpt_dir() / "0065-track1.1_v50_horig_bigdset_gam94/00100000/default"
-            # )  # counter_clockwise, using MPPI data, width 1.1, nominal policy uses vel_tgt=50
-            # self.h_cfg = get_h_cfg_for(width=1.1)
-
-            # # Track_width = 1.1, gamma = 0.94, smaller NN.
-            # # counter_clockwise, using MPPI data, width 1.1, nominal policy uses vel_tgt=50
-            # # ckpt_path = (
-            # #         get_commit_ckpt_dir() / "0065-track1.1_v50_horig_bigdset_gam94/00100000/default"
-            # # )  # counter_clockwise, using MPPI data, width 1.1, nominal policy uses vel_tgt=50
-            # # ckpt_path = get_runs_dir() / "offline/0067-hid6464_2/ckpts/00020000/default"
-            # ckpt_path = get_runs_dir() / "offline/0067-hid6464_2/ckpts/00070000/default"
-            # self.h_cfg = get_h_cfg_for(width=1.1)
-            # hids = [64, 64]
-
-            # # Track_width = 1.1, gamma = 0.94, smaller NN.
-            # # counter_clockwise, using MPPI data, width 1.1, nominal policy uses vel_tgt=50
-            # # ckpt_path = (
-            # #         get_commit_ckpt_dir() / "0065-track1.1_v50_horig_bigdset_gam94/00100000/default"
-            # # )  # counter_clockwise, using MPPI data, width 1.1, nominal policy uses vel_tgt=50
-            # # ckpt_path = get_runs_dir() / "offline/0069-hid9696/ckpts/00100000/default"
-            # ckpt_path = get_runs_dir() / "0069-hid9696/00100000/default"
-            # self.h_cfg = get_h_cfg_for(width=1.1)
-            # hids = [96, 96]
+            ckpt_path = get_commit_ckpt_dir() / "/Users/myles/Programming/cornell/cs5757/DONSVIMPC/runs/offline/offline-run-04-13_17-20/ckpts/00020000/default"
 
         lr = Constant(3e-4)
         wd = Constant(1e-2)

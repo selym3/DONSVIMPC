@@ -67,7 +67,7 @@ class TestRunAutorallyMPPI(unittest.TestCase):
 
         render = True
         log = False
-        test_agents = ["baseline"]
+        test_agents = ["cbf"]
         np.set_printoptions(
             edgeitems=30, linewidth=100000, formatter=dict(float=lambda x: "%10.3f" % x)
         )
@@ -153,7 +153,7 @@ class TestRunAutorallyMPPI(unittest.TestCase):
                 agent.set_renderer(renderer=renderer1)
             goal_checker_for_checking_vehicle_position = agent.cost_evaluator.goal_checker
             collision_checker_for_failure = agent.cost_evaluator.collision_checker
-
+            
             total_eval_time = 0.0
             eval_times = deque([], maxlen=10)
 
@@ -186,7 +186,8 @@ class TestRunAutorallyMPPI(unittest.TestCase):
             rng = onp.random.default_rng(seed=12345)
             for ii in range(10):
                 # [ vx, vy, wz, wF, wR, psi, X, Y ]
-                start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0])
+                start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 3.14, 1.0, 1.0])
+                # start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.8])
                 steps = 0
                 accumulated_steps = 0
                 number_of_laps = 0

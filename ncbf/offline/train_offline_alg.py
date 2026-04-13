@@ -29,7 +29,7 @@ from ncbf.avoid_utils import get_max_gae, get_max_gae_term, get_max_mc
 from ncbf.networks.mlp import MLP
 from ncbf.networks.value_net import ValueNet
 from ncbf.scripts.ncbf_config import get_cfgs
-from robot_planning.helper.convenience import get_ccrf_track
+from robot_planning.helper.convenience import get_spline_track, get_ccrf_track
 
 
 @define
@@ -204,7 +204,7 @@ class TrainOfflineAlg(struct.PyTreeNode):
         n_ey = 16
 
         with jax.ensure_compile_time_eval():
-            track = get_ccrf_track()
+            track = get_spline_track()
             b_s = np.linspace(0.0, float(track.s_total), num=n_s)
             b_ey = np.linspace(-2.0, 2.0, num=n_ey)
 

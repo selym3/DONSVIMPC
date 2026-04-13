@@ -21,7 +21,7 @@ from og.wandb_utils import reorder_wandb_name
 import wandb
 from ncbf.dset_offline import DsetOffline
 from ncbf.offline.train_offline_alg import TrainOfflineAlg, TrainOfflineCfg, Traj
-from robot_planning.helper.convenience import get_ccrf_track, plot_track
+from robot_planning.helper.convenience import get_spline_track, get_ccrf_track, plot_track
 from robot_planning.helper.path_utils import get_root_dir
 
 
@@ -42,7 +42,7 @@ track = None
 def plot_eval(idx: int, plot_dir: pathlib.Path, data: TrainOfflineAlg.EvalData):
     global track
     if track is None:
-        track = get_ccrf_track()
+        track = get_spline_track()
 
     nh = data.bbh_Vh.shape[2]
 
@@ -92,7 +92,7 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
     # trainer_cfg = TrainerCfg(100_000, 100, 1_000, 1_000)
     trainer_cfg = TrainerCfg(300_000, 100, 1_000, 5_000)
     # T_sample = 96
-    T_sample = 24
+    T_sample = 12
     # n_trajs = 96
     n_trajs = 256
 
