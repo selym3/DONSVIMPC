@@ -49,7 +49,7 @@ def set_config(
 
 
 def main():
-    clock_wise = True  # False for counter clock-wise
+    clock_wise = False  # False for counter clock-wise
     render = True
     if clock_wise is False:
         ## for counter clock-wise

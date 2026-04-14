@@ -186,7 +186,7 @@ class TestRunAutorallyMPPI(unittest.TestCase):
             rng = onp.random.default_rng(seed=12345)
             for ii in range(10):
                 # [ vx, vy, wz, wF, wR, psi, X, Y ]
-                start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 3.14, 1.0, 1.0])
+                start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0, -3.0])
                 # start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.8])
                 steps = 0
                 accumulated_steps = 0
