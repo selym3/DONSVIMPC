@@ -116,10 +116,10 @@ def main():
         # [ vx, vy, wz, wF, wR, psi, X, Y ]
         if clock_wise is False:
             ## for reversed (counter clock-wise)
-            start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 3.14, 0.0, -2.8])
+            start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0, -3.0])
         else:
             ## clock-wise
-            start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.8])
+            start_state = onp.array([0.0, 0.0, 0.0, 0.0, 0.0, 3.14, 5.0, -3.0])
 
         if traj_idx > 0:
             # Sample a random s, and start from there.
