@@ -92,7 +92,7 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
     # trainer_cfg = TrainerCfg(100_000, 100, 1_000, 1_000)
     trainer_cfg = TrainerCfg(300_000, 100, 1_000, 5_000)
     # T_sample = 96
-    T_sample = 12
+    T_sample = 1
     # n_trajs = 96
     n_trajs = 256
 
@@ -115,23 +115,25 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
     # exit()
 
     # hids = [256, 256]
-    hids = [96, 96]
-    # hids = [64, 64]
+    # hids = [96, 96]
+    hids = [64, 64]
+    # hids = [48, 48]
     # hids = [32, 32]
     lr = Constant(3e-4)
     wd = Constant(5e-2) # weight decay for nn, increasing it will alleviate overfitting of ncbf
-    n_batches = 1
+    n_batches = 16
     # disc_gamma = 0.92 # discount factor, increasing it will augment unsafe zone
     # disc_gamma = 0.93 # discount factor, increasing it will augment unsafe zone
-    disc_gamma = 0.94 # discount factor, increasing it will augment unsafe zone
+    # disc_gamma = 0.94 # discount factor, increasing it will augment unsafe zone
+    disc_gamma = 0.99
     gae_lambda = 0.95
     # gae_lambda = 1.5
     ema_step = 1e-3
 
     _, nh = dset.bTh_h[0].shape
 
-    # Vh_act = "softplus"
-    Vh_act = "identity"
+    Vh_act = "softplus"
+    # Vh_act = "identity"
     cfg = TrainOfflineCfg("relu", Vh_act, hids, lr, wd, n_batches, disc_gamma, gae_lambda, ema_step)
     alg = TrainOfflineAlg.create(jr.PRNGKey(123456), obs_mean, obs_std, nh, cfg)
 
