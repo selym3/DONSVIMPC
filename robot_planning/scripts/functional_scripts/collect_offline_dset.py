@@ -50,7 +50,7 @@ def set_config(
 
 def main():
     clock_wise = False  # False for counter clock-wise
-    render = True
+    render = False
     if clock_wise is False:
         ## for counter clock-wise
         # config_path = "configs/reverse_run_Autorally_CBF_MPPI_for_experiment.cfg"
@@ -101,7 +101,9 @@ def main():
         )
         goal_checker.goal_state[0] = tgt_vel
 
-    goal_checker_for_checking_vehicle_position = agent.controller.cost_evaluator.goal_checker
+    goal_checker_for_checking_vehicle_position = (
+        agent.controller.cost_evaluator.goal_checker
+    )
     collision_checker_for_failure = agent.controller.cost_evaluator.collision_checker
 
     bT_x = []
@@ -126,6 +128,7 @@ def main():
             track = agent.controller.dynamics.track
             s = rng.uniform(0.0, track.s_total)
             x0, y0, theta0, _, _ = track.get_lerp_from_s(s)
+            print(x0, y0)
             if clock_wise is False:
                 start_state[-3:] = np.array([theta0 + np.pi, x0, y0])
             else:
@@ -177,7 +180,7 @@ def main():
     data_dir = pathlib.Path(__file__).parent.parent.parent / "data"
     data_dir.mkdir(exist_ok=True, parents=True)
 
-    pkl_path = data_dir / "raw_data.pkl"
+    pkl_path = data_dir / "raw_data_2.pkl"
     with open(pkl_path, "wb") as f:
         pickle.dump(bT_x, f, pickle.HIGHEST_PROTOCOL)
     loguru.logger.info("Saved to {}!".format(pkl_path))
