@@ -95,24 +95,7 @@ class SimulatedRobot(Robot):
         # NOTE: THIS MAY HAVE DRASTIC CONSEQUENCES
         self.cost_evaluator = self.controller.cost_evaluator
 
-        if config_data.has_option(section_name,  "obstacle_dynamics"):
-            if not self.controller.cost_evaluator.collision_checker.has_dynamic_obstacles:
-                raise Exception("Obstacle dynamics specified but collision checker does not support dynamic obstacles")
-            obstacle_dynamics_name = config_data.get(section_name, "obstacle_dynamics")
-            obstacle_dynamics_classes = {"default": StaticObstacleDynamics, "static": StaticObstacleDynamics, "linear": LinearObstacleDynamics}
-            if obstacle_dynamics_name not in obstacle_dynamics_classes:
-                raise Exception(f"Obstacle dynamics '{obstacle_dynamics_name}' not one of {obstacle_dynamics_classes.keys()}")
-
-            constructor = obstacle_dynamics_classes[obstacle_dynamics_name]
-            od = None
-
-            if obstacle_dynamics_name == "linear":
-                od = LinearObstacleDynamics(self.controller.cost_evaluator.collision_checker.obstacle_paths, self.dynamics.get_delta_t())
-            else:
-                od = constructor()
-
-            # self.obstacle_dynamics = od
-        print('THIS RAN')
+        # NOTE: assume linear dynamics for now
         self.obstacle_dynamics = LinearObstacleDynamics(self.controller.cost_evaluator.collision_checker.obstacle_paths, self.dynamics.get_delta_t())
 
     @property
