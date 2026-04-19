@@ -23,11 +23,11 @@ print(xla_bridge.get_backend().platform)
 
 
 def main():
-    agent_name = "baseline"
+    # agent_name = "baseline"
     # agent_name = "cbf"
-    # agent_name = "ncbf"
+    agent_name = "ncbf"
 
-    config_path = "configs/run_quadrotor2d.cfg"
+    config_path = "configs/run_quadrotor2d_dynamic_obstacles.cfg"
     config_data = ConfigParser.ConfigParser()
     config_data.read(config_path)
     agent1 = factory_from_config(robot_factory_base, config_data, agent_name+'_agent')

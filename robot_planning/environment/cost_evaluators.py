@@ -153,6 +153,17 @@ class QuadraticCostEvaluator(CostEvaluator):
         return self.evaluate(state_cur, actions, dyna_obstacle_list, dynamics)
 
 
+# 1. Update Quadrotor2DCBFCostEvaluator
+# 	1. Point obstacles to one definitive obstacle list in the collision checker
+# 	2. Calculate costs based on that list
+# 	3. Update h function to take dynamic obstacles into account
+# 2. Update Quadrotor2DCollisionChecker
+# 	1. Add method to update dynamic obstacles
+# 3. Make new NCBF: QuadrotorDynamicObstacleNCBF
+# 	1. Take in states of the dynamic obstacles
+# 4. Make new cost evaluator: Quadrotor2DMPPINCBFDynamicObstacleCostEvaluator
+# 	1. Allow using QuadrotorDynamicObstacleNCBF
+# 	2. Pass dynamic obstacles from collision checker to NCBF
 class Quadrotor2DCBFCostEvaluator(QuadraticCostEvaluator):
     def __init__(
         self,
@@ -189,9 +200,13 @@ class Quadrotor2DCBFCostEvaluator(QuadraticCostEvaluator):
         else:
             self.include_cbf_cost = True
 
-        self.obstacles = np.asarray(ast.literal_eval(config_data.get("my_collision_checker_for_collision", "obstacles")))
-        self.obstacles_radius = np.asarray(
-            ast.literal_eval(config_data.get("my_collision_checker_for_collision", "obstacles_radius")))
+    @property
+    def obstacles(self):
+        return self.collision_checker.obstacles
+    
+    @property
+    def obstacle_radius(self):
+        return self.collision_checker.radius
 
     def get_h_(self, state: jnp.ndarray) -> jnp.ndarray:
         # Get the base h value.

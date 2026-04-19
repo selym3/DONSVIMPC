@@ -17,6 +17,8 @@ class CollisionChecker(object):
         self.obstacles = obstacles
         self.field_boundary = field_boundary
 
+        self.has_dynamic_obstacles = False
+
     def initialize_from_config(self, config_data, section_name):
         pass
 
@@ -267,14 +269,26 @@ class MPPICollisionChecker(PointCollisionChecker):
             collisions = (distance_to_obstacles < (self.obstacles_radius[np.newaxis, :] + self.kinematics.get_radius()) ).any(axis=1) # if a state's distance to any obstacle is less than radius, it collides
             return collisions
 
+
+# SimulationRobot
+#.    self.obstacle_dynamics_step = VerticalObstacleDynamics()
+
+#. step
+#.     colliison_checler.obstacles = self.obstacle_dynamcis_step(collision_checker.obstacles,collision_checker.obstacle_velocity ))
+
 class Quadrotor2DCollisionChecker(CollisionChecker):
     def __init__(self, obstacles=None, kinematics=None):
         CollisionChecker.__init__(self, obstacles, kinematics)
+        self.has_dynamic_obstacles = True
 
     def initialize_from_config(self, config_data, section_name):
         CollisionChecker.initialize_from_config(self, config_data, section_name)
+
         self.obstacles = np.asarray(ast.literal_eval(config_data.get(section_name, "obstacles")))
         self.obstacles_radius = np.asarray(ast.literal_eval(config_data.get(section_name, "obstacles_radius")))
+        self.obstacles_velocity = np.asarray(ast.literal_eval(config_data.get(section_name, "obstacles_velocity")))
+        self.obstacle_paths = np.asarray(ast.literal_eval(config_data.get(section_name, "obstacles_path")))
+
         kinematics_section_name = config_data.get(section_name, "kinematics")
         self.kinematics = factory_from_config(
             kinematics_factory_base, config_data, kinematics_section_name

@@ -23,8 +23,8 @@ print(xla_bridge.get_backend().platform)
 
 
 def main():
-    agent_name = "baseline"
-    # agent_name = "cbf"
+    # agent_name = "baseline"
+    agent_name = "cbf"
     # agent_name = "cbf_inefficient"
     # agent_name = "ncbf"
 

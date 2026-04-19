@@ -1,4 +1,5 @@
 from robot_planning.environment.dynamics.simulated_dynamics import SimulatedDynamics
+from robot_planning.environment.obstacle_dynamics import *
 from robot_planning.environment.renderers import Renderer
 from robot_planning.factory.factory_from_config import factory_from_config
 from robot_planning.factory.factories import dynamics_factory_base
@@ -45,6 +46,8 @@ class SimulatedRobot(Robot):
         self.throttle_max, self.throttle_min = 0.0, 0.0
         self.clear_plot_axis = True
 
+        self.obstacle_dynamics: ObstacleDynamics = StaticObstacleDynamics()
+
     def initialize_from_config(self, config_data, section_name):
         Robot.initialize_from_config(self, config_data, section_name)
         dynamics_section_name = config_data.get(section_name, "dynamics")
@@ -88,6 +91,29 @@ class SimulatedRobot(Robot):
             self.robot_index = int(config_data.get(section_name, "robot_index"))
         else:
             self.robot_index = None
+
+        # NOTE: THIS MAY HAVE DRASTIC CONSEQUENCES
+        self.cost_evaluator = self.controller.cost_evaluator
+
+        if config_data.has_option(section_name,  "obstacle_dynamics"):
+            if not self.controller.cost_evaluator.collision_checker.has_dynamic_obstacles:
+                raise Exception("Obstacle dynamics specified but collision checker does not support dynamic obstacles")
+            obstacle_dynamics_name = config_data.get(section_name, "obstacle_dynamics")
+            obstacle_dynamics_classes = {"default": StaticObstacleDynamics, "static": StaticObstacleDynamics, "linear": LinearObstacleDynamics}
+            if obstacle_dynamics_name not in obstacle_dynamics_classes:
+                raise Exception(f"Obstacle dynamics '{obstacle_dynamics_name}' not one of {obstacle_dynamics_classes.keys()}")
+
+            constructor = obstacle_dynamics_classes[obstacle_dynamics_name]
+            od = None
+
+            if obstacle_dynamics_name == "linear":
+                od = LinearObstacleDynamics(self.controller.cost_evaluator.collision_checker.obstacle_paths, self.dynamics.get_delta_t())
+            else:
+                od = constructor()
+
+            # self.obstacle_dynamics = od
+        print('THIS RAN')
+        self.obstacle_dynamics = LinearObstacleDynamics(self.controller.cost_evaluator.collision_checker.obstacle_paths, self.dynamics.get_delta_t())
 
     @property
     def delta_t(self):
@@ -284,6 +310,11 @@ class SimulatedRobot(Robot):
         state_next = None
         cost = 0
         warm_start = True if self.steps == 0 else False
+
+        collision_checker = self.controller.cost_evaluator.collision_checker
+        if collision_checker.has_dynamic_obstacles:
+            next_obstacle_states = self.obstacle_dynamics.step(collision_checker.obstacles, collision_checker.obstacles_velocity)
+            collision_checker.obstacles, collision_checker.obstacles_velocity = next_obstacle_states
 
         start_time = time.perf_counter()
         timer_ = timer.child("plan").start()
