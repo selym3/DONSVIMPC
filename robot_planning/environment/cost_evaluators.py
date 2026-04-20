@@ -205,8 +205,8 @@ class Quadrotor2DCBFCostEvaluator(QuadraticCostEvaluator):
         return self.collision_checker.obstacles
     
     @property
-    def obstacle_radius(self):
-        return self.collision_checker.radius
+    def obstacles_radius(self):
+        return self.collision_checker.obstacles_radius
 
     def get_h_(self, state: jnp.ndarray) -> jnp.ndarray:
         # Get the base h value.
