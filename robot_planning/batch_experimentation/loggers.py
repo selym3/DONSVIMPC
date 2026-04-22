@@ -411,6 +411,7 @@ class Drone2DNpzLogger(Logger):
         self.goal_checker = goal_checker
         # self.sim_states = np.zeros((11, 0))
         self.sim_states_list = []
+        self.obstacle_states_list = []
         # self.disturbances = np.zeros((8, 0))
         self.disturbances_list = []
         self.crash = 0
@@ -488,12 +489,35 @@ class Drone2DNpzLogger(Logger):
         state = self.agent.get_state()
         self.sim_states_list.append(state.reshape((-1, 1)))
 
+    def append_obstacle_state(self):
+        collision_checker = self.collision_checker
+        obstacles = collision_checker.obstacles
+        obstacle_velocities = collision_checker.obstacles_velocity
+        obstacle_paths = collision_checker.obstacle_paths
+        obstacles_radius = collision_checker.obstacles_radius
+
+        # brutally pasted from linear obstacle dynamics
+        path_deltas = obstacle_paths[:, 1] - obstacle_paths[:, 0]
+        path_norms = np.linalg.norm(path_deltas, axis=1, keepdims=True)
+        assert np.all(path_norms > 1e-5), "path norm"
+        path_norm_vecs = path_deltas / path_norms
+        twod_obstacle_velocities = obstacle_velocities[:, None] * path_norm_vecs
+        assert twod_obstacle_velocities.shape == (len(obstacles), 2)
+
+        self.obstacle_states_list.append(
+            np.concatenate([
+                obstacles, twod_obstacle_velocities, obstacles_radius.reshape((-1, 1))
+            ], axis=1)
+        )
+
+
+
     def log(self):
         timer = Timer.get_active()
         if self.number_of_failure > 0:
             self.crash = 1
-        state = self.agent.get_state()
-        self.sim_states_list.append(state.reshape((-1, 1)))
+        self.append_state()
+        self.append_obstacle_state()
         timer.stop().print_results()
 
     def add_trajectory_list(self, trajectory_list):
@@ -509,6 +533,10 @@ class Drone2DNpzLogger(Logger):
     @property
     def sim_states(self):
         return onp.concatenate(self.sim_states_list, axis=1)
+    
+    @property
+    def obstacle_states(self):
+        return onp.stack(self.obstacle_states_list)
 
     @property
     def n_sim_states(self):
@@ -524,6 +552,7 @@ class Drone2DNpzLogger(Logger):
         np.savez(
             self.log_file_path,
             states=self.sim_states,
+            obstacle_states=self.obstacle_states,
             collisions=self.number_of_collisions,
             crash=self.crash,
             lap_time=self.agent.get_time(),

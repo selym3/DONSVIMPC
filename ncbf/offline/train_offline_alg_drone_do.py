@@ -24,7 +24,7 @@ from og.train_state import TrainState
 from og.tree_utils import tree_copy, tree_split_dims
 
 from ncbf.avoid_utils import get_max_gae_term, get_max_mc
-from ncbf.drone_do_task import get_h_vector_drone, state_to_obs_drone
+from ncbf.drone_task import get_h_vector_drone, state_to_obs_drone
 from ncbf.networks.mlp import MLP
 from ncbf.networks.value_net import ValueNet
 
