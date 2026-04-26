@@ -294,6 +294,15 @@ class Quadrotor2DCollisionChecker(CollisionChecker):
             kinematics_factory_base, config_data, kinematics_section_name
         )
 
+    def get_obstacle_matrix(self):
+        path_deltas = self.obstacle_paths[:, 1] - self.obstacle_paths[:, 0]
+        path_norms = np.linalg.norm(path_deltas, axis=1, keepdims=True)
+        # assert np.all(path_norms > 1e-5), "path norm"
+        path_norm_vecs = path_deltas / path_norms
+        twod_obstacle_velocities = self.obstacles_velocity[:, None] * path_norm_vecs
+        
+        return np.concatenate([ self.obstacles, twod_obstacle_velocities, self.obstacles_radius.reshape((-1, 1)) ], axis=1)
+
     def check(self, state_cur, opponent_agents=None, check_other_agents=None):  # True for collision, False for no collision
         obstacle_collisions = self.check_collision_with_obstacles(state_cur)
         agent_collisions = self.check_collisions_with_boundaries(state_cur)

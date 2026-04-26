@@ -88,6 +88,10 @@ def cost_evaluator_factory_base(base_type):
         from robot_planning.environment.cost_evaluators import DubinsCBFCostEvaluator
 
         return DubinsCBFCostEvaluator()
+    elif base_type == "QuadrotorMPPIDynamicObstacleNCBFCostEvaluator":
+        from robot_planning.environment.do_ncbf_quadrotor import QuadrotorMPPIDynamicObstacleNCBFCostEvaluator
+
+        return QuadrotorMPPIDynamicObstacleNCBFCostEvaluator()
     else:
         raise ValueError("cost_evaluator type {} not recognized".format(base_type))
 

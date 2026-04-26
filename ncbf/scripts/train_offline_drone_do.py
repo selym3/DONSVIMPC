@@ -109,12 +109,15 @@ from robot_planning.factory.factory_from_config import factory_from_config
 
 
 def load_config_for_obstacles():
-    config_path = "configs/run_quadrotor2d_dynamic_obstacles.cfg"
+    config_path = (
+        "../../robot_planning/scripts/configs/run_quadrotor2d_dynamic_obstacles.cfg"
+    )
     config_data = ConfigParser.ConfigParser()
     config_data.read(config_path)
-    agent_name = (
-        "baseline"  # Agent name should not matter, all use the same collision checker
-    )
+
+    # Agent name should not matter, all use the same collision checker
+    agent_name = "baseline"
+
     agent1 = factory_from_config(robot_factory_base, config_data, agent_name + "_agent")
 
     collision_checker = agent1.controller.cost_evaluator.collision_checker
@@ -123,12 +126,18 @@ def load_config_for_obstacles():
     obstacles_velocity = collision_checker.obstacles_velocity
     obstacle_paths = collision_checker.obstacle_paths
 
+    path_deltas = obstacle_paths[:, 1] - obstacle_paths[:, 0]
+    path_norms = np.linalg.norm(path_deltas, axis=1, keepdims=True)
+    assert np.all(path_norms > 1e-5), "path norm"
+    path_norm_vecs = path_deltas / path_norms
+    twod_obstacle_velocities = obstacles_velocity[:, None] * path_norm_vecs
+    assert twod_obstacle_velocities.shape == (len(obstacles), 2)
+
     obstacle_info = np.concatenate(
-        [obstacles, obstacles_radius, obstacles_velocity, obstacle_paths], axis=1
+        [obstacles, twod_obstacle_velocities, obstacles_radius.reshape(-1, 1)], axis=1
     )
 
     return obstacle_info
-
 
 def main(dset_path: pathlib.Path, wandb_name: str = None):
 
@@ -196,7 +205,7 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
     run = wandb.init(project="ar_drone_offline", config=cfg.asdict())
     reorder_wandb_name(wandb_name)
 
-    run_dir = get_root_dir() / "runs/offline_drone" / run.name
+    run_dir = get_root_dir() / "runs/offline_drone_do" / run.name
 
     run_dir.mkdir(exist_ok=True, parents=True)
 
