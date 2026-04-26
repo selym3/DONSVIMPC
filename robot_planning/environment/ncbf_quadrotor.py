@@ -12,14 +12,21 @@ from og.schedules import Constant
 
 from ncbf.drone_task import get_h_vector_drone, state_to_obs_drone
 from ncbf.offline.train_offline_alg_drone import TrainOfflineCfg, TrainOfflineDroneAlg
-from robot_planning.environment.cost_evaluators import AutorallyMPPICostEvaluator, QuadraticCostEvaluator
-from robot_planning.environment.dynamics.autorally_dynamics.autorally_dynamics import AutoRallyDynamics
+from robot_planning.environment.cost_evaluators import (
+    AutorallyMPPICostEvaluator,
+    QuadraticCostEvaluator,
+)
+from robot_planning.environment.dynamics.autorally_dynamics.autorally_dynamics import (
+    AutoRallyDynamics,
+)
 from robot_planning.helper.path_utils import get_drone_commit_ckpt_dir
 
 
 class QuadrotorNCBF:
     def __init__(self, ckpt_path: pathlib.Path | None = None):
-        self.value_net, self.obs_norm, self.alg_cfg, self.nh = self.load_value_net(ckpt_path)
+        self.value_net, self.obs_norm, self.alg_cfg, self.nh = self.load_value_net(
+            ckpt_path
+        )
 
     def load_value_net(self, ckpt_path: pathlib.Path | None = None):
         hids = [256, 256]
@@ -35,7 +42,17 @@ class QuadrotorNCBF:
         disc_gamma = 0.92
         gae_lambda = 0.95
         ema_step = 1e-3
-        cfg = TrainOfflineCfg("relu", "softplus", hids, lr, wd, n_batches, disc_gamma, gae_lambda, ema_step)
+        cfg = TrainOfflineCfg(
+            "relu",
+            "softplus",
+            hids,
+            lr,
+            wd,
+            n_batches,
+            disc_gamma,
+            gae_lambda,
+            ema_step,
+        )
 
         # Load cfg.
         ckpt_dict = load_ckpt_ez(ckpt_path, {"cfg": cfg})
@@ -45,7 +62,9 @@ class QuadrotorNCBF:
         nh = len(get_h_vector_drone(state))
 
         dummy = jnp.zeros(1)
-        alg: TrainOfflineDroneAlg = TrainOfflineDroneAlg.create(jr.PRNGKey(0), dummy, dummy, nh, cfg)
+        alg: TrainOfflineDroneAlg = TrainOfflineDroneAlg.create(
+            jr.PRNGKey(0), dummy, dummy, nh, cfg
+        )
 
         # Load ckpt.
         ckpt_dict = load_ckpt_ez(ckpt_path, {"alg": alg})
@@ -98,7 +117,9 @@ class QuadrotorNCBF:
 
 class QuadrotorDynamicObstacleNCBF:
     def __init__(self, ckpt_path: pathlib.Path | None = None):
-        self.value_net, self.obs_norm, self.alg_cfg, self.nh = self.load_value_net(ckpt_path)
+        self.value_net, self.obs_norm, self.alg_cfg, self.nh = self.load_value_net(
+            ckpt_path
+        )
 
     def load_value_net(self, ckpt_path: pathlib.Path | None = None):
         hids = [256, 256]
@@ -112,7 +133,17 @@ class QuadrotorDynamicObstacleNCBF:
         disc_gamma = 0.92
         gae_lambda = 0.95
         ema_step = 1e-3
-        cfg = TrainOfflineCfg("relu", "softplus", hids, lr, wd, n_batches, disc_gamma, gae_lambda, ema_step)
+        cfg = TrainOfflineCfg(
+            "relu",
+            "softplus",
+            hids,
+            lr,
+            wd,
+            n_batches,
+            disc_gamma,
+            gae_lambda,
+            ema_step,
+        )
 
         # Load cfg.
         ckpt_dict = load_ckpt_ez(ckpt_path, {"cfg": cfg})
@@ -122,7 +153,9 @@ class QuadrotorDynamicObstacleNCBF:
         nh = len(get_h_vector_drone(state))
 
         dummy = jnp.zeros(1)
-        alg: TrainOfflineDroneAlg = TrainOfflineDroneAlg.create(jr.PRNGKey(0), dummy, dummy, nh, cfg)
+        alg: TrainOfflineDroneAlg = TrainOfflineDroneAlg.create(
+            jr.PRNGKey(0), dummy, dummy, nh, cfg
+        )
 
         # Load ckpt.
         ckpt_dict = load_ckpt_ez(ckpt_path, {"alg": alg})
@@ -142,15 +175,19 @@ class QuadrotorDynamicObstacleNCBF:
         norm_obs = self.obs_norm.normalize(obs)
         return norm_obs
 
-    def get_h_vector(self, state: jnp.ndarray, ):
+    def get_h_vector(self, state: jnp.ndarray):
         assert state.shape == (6,)
         h_h = get_h_vector_drone(state)
         return h_h
 
-    def get_h(self, state: jnp.ndarray, obstacle_positions: jnp.ndarray,
-              obstacle_radius: jnp.ndarray,
-              obstacle_velocities: jnp.ndarray,
-              ncbf_weights=None) -> jnp.ndarray:
+    def get_h(
+        self,
+        state: jnp.ndarray,
+        obstacle_positions: jnp.ndarray,
+        obstacle_radius: jnp.ndarray,
+        obstacle_velocities: jnp.ndarray,
+        ncbf_weights=None,
+    ) -> jnp.ndarray:
         # 1: Get the NORMALIZED observation.
         norm_obs = self.get_norm_obs(state)
 
@@ -186,7 +223,9 @@ class QuadrotorMPPINCBFCostEvaluator(QuadraticCostEvaluator):
         collision_cost=None,
         goal_cost=None,
     ):
-        QuadraticCostEvaluator.__init__(self, goal_checker, collision_checker, Q, R, collision_cost, goal_cost)
+        QuadraticCostEvaluator.__init__(
+            self, goal_checker, collision_checker, Q, R, collision_cost, goal_cost
+        )
         self.ncbf = QuadrotorNCBF()
         self.cbf_alpha = 0.9
         self.cbf_alpha_localrepair = 0.1
@@ -210,13 +249,25 @@ class QuadrotorMPPINCBFCostEvaluator(QuadraticCostEvaluator):
 
     def initialize_from_config(self, config_data, section_name: str):
         # Get superclass parameters
-        AutorallyMPPICostEvaluator.initialize_from_config(self, config_data, section_name)
+        AutorallyMPPICostEvaluator.initialize_from_config(
+            self, config_data, section_name
+        )
         if config_data.has_option(section_name, "include_cbf_cost"):
-            self.include_cbf_cost = config_data.getboolean(section_name, "include_cbf_cost")
+            self.include_cbf_cost = config_data.getboolean(
+                section_name, "include_cbf_cost"
+            )
         else:
             self.include_cbf_cost = True
 
-    def evaluate_cost(self, state_cur, state_next, action, noise, dynamics: AutoRallyDynamics, ncbf_weights=None):
+    def evaluate_cost(
+        self,
+        state_cur,
+        state_next,
+        action,
+        noise,
+        dynamics: AutoRallyDynamics,
+        ncbf_weights=None,
+    ):
         """
         :param state_cur: (nx, ) = (6, )
         :param state_next: (nx, ) = (6, )
@@ -269,7 +320,9 @@ class QuadrotorMPPINCBFCostEvaluator(QuadraticCostEvaluator):
         #   λ=0 => α=1,    λ=∞ => α=0
         #   α=1 is the most conservative, α=0 is the least conservative.
         h_vio = h_Vh_next - self.cbf_alpha * h_Vh_now
-        h_cost_cbf = jnp.where(h_vio > 0, self.cbf_vio_cost * h_vio, self.cbf_safe_cost * h_vio)
+        h_cost_cbf = jnp.where(
+            h_vio > 0, self.cbf_vio_cost * h_vio, self.cbf_safe_cost * h_vio
+        )
         # #       If we are unsafe now, then maximize safety of the next step.
         # is_unsafe = jnp.any(h_Vh_now > 0)
         # h_cost_cbf_unsafe = self.cbf_vio_cost * h_Vh_next
@@ -300,7 +353,9 @@ class QuadrotorMPPINCBFCostEvaluator(QuadraticCostEvaluator):
             is_unsafe = is_unsafe | vio_cbf_resample
 
         if self.h_vio_resample_Vh_thresh is not None:
-            vio_cbf_resample_Vh = jnp.max(h_vio_resample_Vh) > self.h_vio_resample_Vh_thresh
+            vio_cbf_resample_Vh = (
+                jnp.max(h_vio_resample_Vh) > self.h_vio_resample_Vh_thresh
+            )
             is_unsafe = is_unsafe | vio_cbf_resample_Vh
 
         # is_unsafe = next_unsafe_Vh | collisions

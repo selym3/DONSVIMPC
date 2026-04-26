@@ -107,28 +107,32 @@ import configparser as ConfigParser
 from robot_planning.factory.factories import robot_factory_base
 from robot_planning.factory.factory_from_config import factory_from_config
 
+
 def load_config_for_obstacles():
     config_path = "configs/run_quadrotor2d_dynamic_obstacles.cfg"
     config_data = ConfigParser.ConfigParser()
     config_data.read(config_path)
-    agent_name = 'baseline' # Agent name should not matter, all use the same collision checker
-    agent1 = factory_from_config(robot_factory_base, config_data, agent_name+'_agent')
-    
+    agent_name = (
+        "baseline"  # Agent name should not matter, all use the same collision checker
+    )
+    agent1 = factory_from_config(robot_factory_base, config_data, agent_name + "_agent")
+
     collision_checker = agent1.controller.cost_evaluator.collision_checker
     obstacles = collision_checker.obstacles
     obstacles_radius = collision_checker.obstacles_radius
     obstacles_velocity = collision_checker.obstacles_velocity
     obstacle_paths = collision_checker.obstacle_paths
-    
-    obstacle_info = np.concatenate([ obstacles, obstacles_radius, obstacles_velocity, obstacle_paths], dim=1)
+
+    obstacle_info = np.concatenate(
+        [obstacles, obstacles_radius, obstacles_velocity, obstacle_paths], axis=1
+    )
 
     return obstacle_info
-    
 
 
 def main(dset_path: pathlib.Path, wandb_name: str = None):
 
-    EVAL_OBSTACLES = jnp.array(load_config_for_obstacles())
+    eval_obstacles = jnp.array(load_config_for_obstacles())
 
     # trainer_cfg = TrainerCfg(100_000, 100, 1_000, 1_000)
     trainer_cfg = TrainerCfg(300_000, 100, 1_000, 5_000)
@@ -221,7 +225,7 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
 
         if should_eval:
             logger.info("Eval...")
-            data = jax2np(alg.eval(T_obs_eval, Th_h_eval, EVAL_OBSTACLES))
+            data = jax2np(alg.eval(T_obs_eval, Th_h_eval, eval_obstacles))
             logger.info("Eval... Done!")
             plot_eval(idx, plot_dir, data)
 
