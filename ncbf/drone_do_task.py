@@ -19,7 +19,7 @@ def state_to_obs_drone(state: jnp.ndarray, obstacles: jnp.ndarray):
     # [ px py vx vy r ]
     n_obstacles = obstacles.shape[0]
     assert obstacles.shape == (n_obstacles, 5)
-    assert n_obstacles>= 2, "Need at least two obstacles."
+    assert n_obstacles >= 2, "Need at least two obstacles."
 
     obstacle_positions = obstacles[:, :2]
     obstacle_velocities = obstacles[:, 2:4]
@@ -33,9 +33,11 @@ def state_to_obs_drone(state: jnp.ndarray, obstacles: jnp.ndarray):
     kin = get_drone_kinematics()
 
     # sdf
-    o_dist = jnp.linalg.norm(pos2d - obstacle_positions) - (obstacle_radii + kin.get_radius())
+    o_dist = jnp.linalg.norm(pos2d - obstacle_positions, axis=1) - (
+        obstacle_radii + kin.get_radius()
+    )
     # Sort the distances.
-    _, two_closest_idx = jax.lax.top_k(-o_dist, k=2) 
+    _, two_closest_idx = jax.lax.top_k(-o_dist, k=2)
     # Take the two closest obstacles.
     o_dist_closest = o_dist[two_closest_idx]
     o_vel_closest = vel2d - obstacle_velocities[two_closest_idx]
@@ -44,7 +46,9 @@ def state_to_obs_drone(state: jnp.ndarray, obstacles: jnp.ndarray):
     theta_sincos = jnp.array([jnp.sin(theta), jnp.cos(theta)])
 
     obs_state = jnp.array([px, pz, vx, vz, omega])
-    obs = jnp.concatenate([obs_state, theta_sincos, o_dist_closest, o_vel_closest.flatten()])
+    obs = jnp.concatenate(
+        [obs_state, theta_sincos, o_dist_closest, o_vel_closest.flatten()]
+    )
 
     assert obs.shape == (5 + 2 + 2 + 4,)
 
@@ -57,10 +61,9 @@ def get_h_components(state, obstacles):
 
     n_obstacles = obstacles.shape[0]
     assert obstacles.shape == (n_obstacles, 5)
-    assert n_obstacles>= 2, "Need at least two obstacles."
+    assert n_obstacles >= 2, "Need at least two obstacles."
 
     obstacle_positions = obstacles[:, :2]
-    obstacle_velocities = obstacles[:, 2:4]
     obstacle_radii = obstacles[:, 4]
 
     kin = get_drone_kinematics()
@@ -69,7 +72,9 @@ def get_h_components(state, obstacles):
     pos2d = state[:2]
 
     # Obstacles.
-    o_dist = jnp.linalg.norm(pos2d - obstacle_positions) - (obstacle_radii + kin.get_radius())
+    o_dist = jnp.linalg.norm(pos2d - obstacle_positions, axis=1) - (
+        obstacle_radii + kin.get_radius()
+    )
     obs_dist_min = jnp.min(o_dist)
 
     # negative is safe.
@@ -93,7 +98,20 @@ def get_h_components(state, obstacles):
         eps = 0.3
         return jnp.where(h_ < 0, h_ - eps, 1.0)
 
-    return {"obs": f(h_obs), "boundary": f(h_boundary), "drone_angle": f(h_drone_angle), "px_left": f(h_px_left)}
+    # jax.debug.print(
+    #     "pos2d: {}\nobstacle_positions: {}\no_dist: {}\nf(h_obs): {}",
+    #     pos2d,
+    #     obstacle_positions,
+    #     o_dist,
+    #     f(h_obs),
+    # )
+
+    return {
+        "obs": f(h_obs),
+        "boundary": f(h_boundary),
+        "drone_angle": f(h_drone_angle),
+        "px_left": f(h_px_left),
+    }
 
 
 def get_h_vector_drone(state, obstacles):

@@ -14,24 +14,39 @@ import ipdb
 import loguru
 import numpy as onp
 
-from robot_planning.batch_experimentation.loggers import AutorallyNpzLogger, Drone2DNpzLogger
+from robot_planning.batch_experimentation.loggers import (
+    AutorallyNpzLogger,
+    Drone2DNpzLogger,
+)
 from robot_planning.controllers.MPPI.MPPI import MPPI
-from robot_planning.environment.cost_evaluators import AutorallyMPPICostEvaluator, Quadrotor2DCBFCostEvaluator
-from robot_planning.environment.goal_checker import AutorallyCartesianGoalChecker, QuadrotorCartesianGoalChecker
+from robot_planning.environment.cost_evaluators import (
+    AutorallyMPPICostEvaluator,
+    Quadrotor2DCBFCostEvaluator,
+)
+from robot_planning.environment.goal_checker import (
+    AutorallyCartesianGoalChecker,
+    QuadrotorCartesianGoalChecker,
+)
 from robot_planning.environment.robots.simulated_robot import SimulatedRobot
-from robot_planning.factory.factories import (collision_checker_factory_base, goal_checker_factory_base,
-                                              logger_factory_base, renderer_factory_base, robot_factory_base)
+from robot_planning.factory.factories import (
+    collision_checker_factory_base,
+    goal_checker_factory_base,
+    logger_factory_base,
+    renderer_factory_base,
+    robot_factory_base,
+)
 from robot_planning.factory.factory_from_config import factory_from_config
 from robot_planning.helper.timer import Timer
+
 
 def main():
     config_path = "configs/run_quadrotor2d_dynamic_obstacles.cfg"
     config_data = ConfigParser.ConfigParser()
     config_data.read(config_path)
 
-    n_trajs_collect = 2
+    # n_trajs_collect = 2
     # n_trajs_collect = 256
-    # n_trajs_collect = 1_024
+    n_trajs_collect = 1_024
     # n_trajs_collect = 8_192
 
     render = False
@@ -71,7 +86,9 @@ def main():
         str(horizon),
     )
 
-    agent: SimulatedRobot = factory_from_config(robot_factory_base, config_data, test_agent + "_agent")
+    agent: SimulatedRobot = factory_from_config(
+        robot_factory_base, config_data, test_agent + "_agent"
+    )
     renderer1 = factory_from_config(renderer_factory_base, config_data, "renderer1")
 
     controller: MPPI = agent.controller
@@ -80,9 +97,10 @@ def main():
 
     if tgt_vx is not None:
         tgt_vel_orig = goal_checker.goal_state[3]
-        loguru.logger.critical("Overriding the tgt_vx from {} -> {}!".format(tgt_vel_orig, tgt_vx))
+        loguru.logger.critical(
+            "Overriding the tgt_vx from {} -> {}!".format(tgt_vel_orig, tgt_vx)
+        )
         goal_checker.goal_state[3] = tgt_vx
-
 
     # -------------------------------------------------------------------------
     #  Start collecting data.
@@ -95,16 +113,16 @@ def main():
 
     rng = onp.random.default_rng(seed=12345)
     for traj_idx in tqdm.trange(n_trajs_collect):
-
         logger = factory_from_config(logger_factory_base, config_data, "logger")
         assert isinstance(logger, Drone2DNpzLogger)
-        
+
         # NOTE: with dynamic obstacles need to all to one instance
         logger.collision_checker = agent.cost_evaluator.collision_checker
 
+        collision_checker_for_failure: Quadrotor2DCollisionChecker = (
+            logger.collision_checker
+        )
 
-        collision_checker_for_failure: Quadrotor2DCollisionChecker = logger.collision_checker
-        
         # print("               ===== {:3} / {:3} =====            ".format(traj_idx + 1, n_trajs_collect))
         start_state = onp.array([-4, 1.0, 0.0, 0.0, 0.0, 0.0])
 
@@ -122,7 +140,9 @@ def main():
                     if len(kk_corridor) > 0:
                         kk_random = rng.choice(kk_corridor)
                     else:
-                        loguru.logger.warning("No corridor samples found. Sampling randomly.")
+                        loguru.logger.warning(
+                            "No corridor samples found. Sampling randomly."
+                        )
                         kk_random = rng.integers(0, len(T_x))
 
                     # Use a tiny position perturbation.
@@ -180,10 +200,12 @@ def main():
                 # start_state = x
                 # Add some noise.
                 has_collided = True
+                num_attempts = 0
                 print("in loop2")
-                while has_collided:
+                while has_collided and num_attempts < 1000:
                     start_state = x + rng.normal(0.0, noise_std)
                     has_collided = collision_checker_for_failure.check(start_state)
+                    num_attempts += 1
                 print("out of loop2")
 
                 # With some probability, scale the velocity with random multipliers.
@@ -200,15 +222,17 @@ def main():
 
         agent.reset_state(np.array(start_state))
         agent.reset_controller()
-        
+
         logger.set_agent(agent=agent)
         if render:
             agent.set_renderer(renderer=renderer1)
 
-        goal_checker_for_checking_drone_position: QuadrotorCartesianGoalChecker = factory_from_config(
-            goal_checker_factory_base,
-            config_data,
-            "my_goal_checker1",
+        goal_checker_for_checking_drone_position: QuadrotorCartesianGoalChecker = (
+            factory_from_config(
+                goal_checker_factory_base,
+                config_data,
+                "my_goal_checker1",
+            )
         )
         steps = 0
 
@@ -224,12 +248,18 @@ def main():
             timer = Timer("Control loop").start()
 
             steps += 1
-            state_next, cost, eval_time, action = agent.take_action_with_controller(return_time=True, logger=logger)
-            logger.calculate_number_of_failures(state_next, collision_checker_for_failure)
+            state_next, cost, eval_time, action = agent.take_action_with_controller(
+                return_time=True, logger=logger
+            )
+            logger.calculate_number_of_failures(
+                state_next, collision_checker_for_failure
+            )
             logger.log()
 
             if render:
-                renderer1.render_goal(goal_checker_for_checking_drone_position.get_goal())
+                renderer1.render_goal(
+                    goal_checker_for_checking_drone_position.get_goal()
+                )
 
             timer.stop().print_results()
 

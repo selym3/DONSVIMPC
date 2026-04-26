@@ -24,7 +24,7 @@ from og.train_state import TrainState
 from og.tree_utils import tree_copy, tree_split_dims
 
 from ncbf.avoid_utils import get_max_gae_term, get_max_mc
-from ncbf.drone_do_task import get_h_vector_drone, state_to_obs_drone
+from ncbf.drone_task import get_h_vector_drone, state_to_obs_drone
 from ncbf.networks.mlp import MLP
 from ncbf.networks.value_net import ValueNet
 
@@ -106,8 +106,12 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
 
         value_net_cls = ft.partial(MLP, cfg.hids, act)
         value_net_def = ValueNet(value_net_cls, nh, Vh_act)
-        value_net_tx = get_default_tx(as_schedule(cfg.lr).make(), as_schedule(cfg.wd).make())
-        value_net = TrainState.create_from_def(key_quantile, value_net_def, (obs_mean,), value_net_tx)
+        value_net_tx = get_default_tx(
+            as_schedule(cfg.lr).make(), as_schedule(cfg.wd).make()
+        )
+        value_net = TrainState.create_from_def(
+            key_quantile, value_net_def, (obs_mean,), value_net_tx
+        )
         ema = tree_copy(value_net.params)
 
         zero = jnp.array(0, dtype=jnp.int32)
@@ -120,8 +124,12 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
         bTp1h_Vh = jax_vmap(self.value_net.apply, rep=2)(b_traj.Tp1_obs)
 
         # max_gae_fn = ft.partial(get_max_gae, self.cfg.disc_gamma, self.cfg.gae_lambda)
-        max_gae_fn = ft.partial(get_max_gae_term, self.cfg.disc_gamma, self.cfg.gae_lambda)
-        bTh_Qh = jax_vmap(max_gae_fn)(b_traj.Th_h, bTp1h_Vh, b_traj.Th_h, b_traj.T_isterm)
+        max_gae_fn = ft.partial(
+            get_max_gae_term, self.cfg.disc_gamma, self.cfg.gae_lambda
+        )
+        bTh_Qh = jax_vmap(max_gae_fn)(
+            b_traj.Th_h, bTp1h_Vh, b_traj.Th_h, b_traj.T_isterm
+        )
         # 3: Make the dataset by flattening (b, T) -> (b * T,)
         bT_obs = b_traj.Tp1_obs[:, :-1]
         bT_batch = TrainOfflineDroneAlg.Batch(bT_obs, b_traj.Th_h, bTh_Qh)
@@ -148,7 +156,9 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
         # ipdb.set_trace()
 
         # 3: Perform value function and policy updates.
-        def updates_body(alg_: TrainOfflineDroneAlg, b_batch: TrainOfflineDroneAlg.Batch):
+        def updates_body(
+            alg_: TrainOfflineDroneAlg, b_batch: TrainOfflineDroneAlg.Batch
+        ):
             return alg_._update_value(b_batch)
 
         new_self, info = lax.scan(updates_body, self, mb_dset, length=n_batches)
@@ -159,7 +169,9 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
 
     def _update_value(self, batch: Batch) -> tuple["TrainOfflineDroneAlg", FloatDict]:
         def get_Vh_loss(params):
-            bh_Vh_resid = jax.vmap(ft.partial(self.value_net.apply_with, params=params))(batch.b_obs)
+            bh_Vh_resid = jax.vmap(
+                ft.partial(self.value_net.apply_with, params=params)
+            )(batch.b_obs)
             # bh_Vh = batch.bh_h + bh_Vh_resid
             bh_Vh = bh_Vh_resid
             loss_Vh = jnp.mean((bh_Vh - batch.bh_Qh) ** 2)
@@ -239,7 +251,9 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
 
         # Compute the GAE estimate of the value function target
         # (i.e., interpolated version between Th_h_diisc_eval and Th_Vh_eval)
-        max_gae_fn = ft.partial(get_max_gae_term, self.cfg.disc_gamma, self.cfg.gae_lambda)
+        max_gae_fn = ft.partial(
+            get_max_gae_term, self.cfg.disc_gamma, self.cfg.gae_lambda
+        )
         Th_Qh_gae = max_gae_fn(Th_h_eval, Tp1h_Vh_eval, Th_h_eval, T_isterm)
 
         # Evaluate a smoothed (EMA) version of the predicted value function.
@@ -250,4 +264,13 @@ class TrainOfflineDroneAlg(struct.PyTreeNode):
             "Vh_evaltraj_err": jnp.mean((Th_Vh_eval - Th_h_disc_eval) ** 2),
         }
 
-        return self.EvalData(bb_pos, bbh_Vh, Th_h_eval, Th_h_disc_eval, Th_Qh_gae, Th_Vh_eval, Th_Vh_eval_ema, info)
+        return self.EvalData(
+            bb_pos,
+            bbh_Vh,
+            Th_h_eval,
+            Th_h_disc_eval,
+            Th_Qh_gae,
+            Th_Vh_eval,
+            Th_Vh_eval_ema,
+            info,
+        )

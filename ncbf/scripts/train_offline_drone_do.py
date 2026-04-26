@@ -20,9 +20,12 @@ from og.wandb_utils import reorder_wandb_name
 
 import wandb
 from ncbf.dset_offline_drone import DsetOfflineDrone
-from ncbf.offline.train_offline_alg_drone_do import TrainOfflineCfg, TrainOfflineDroneAlg
-from robot_planning.helper.convenience import get_ccrf_track, get_drone_obstacles, plot_track
+from ncbf.offline.train_offline_alg_drone_do import (
+    TrainOfflineCfg,
+    TrainOfflineDroneAlg,
+)
 from robot_planning.helper.path_utils import get_root_dir
+import jax.numpy as jnp
 
 
 @define
@@ -35,14 +38,15 @@ class TrainerCfg(Cfg):
     ckpt_max_keep: int = 100
 
 
-obs_info = None
+EVAL_OBSTACLES = jnp.array(
+    [
+        [0.0, 0.5, 0.0, 0.0, 0.4],
+        [5.0, 0.5, 0.0, 0.0, 0.3],
+    ]
+)
 
 
 def plot_eval(idx: int, plot_dir: pathlib.Path, data: TrainOfflineDroneAlg.EvalData):
-    global obs_info
-    if obs_info is None:
-        obs_info = get_drone_obstacles()
-
     nh = data.bbh_Vh.shape[2]
     figsize = np.array([8.0, nh * 3.0])
     fig, axes = plt.subplots(nh, dpi=300, figsize=figsize)
@@ -54,14 +58,19 @@ def plot_eval(idx: int, plot_dir: pathlib.Path, data: TrainOfflineDroneAlg.EvalD
 
     for ii, ax in enumerate(axes):
         cm = ax.contourf(
-            data.bb_pos[:, :, 0], data.bb_pos[:, :, 1], data.bbh_Vh[:, :, ii], levels=32, cmap=cmap, norm=CenteredNorm()
+            data.bb_pos[:, :, 0],
+            data.bb_pos[:, :, 1],
+            data.bbh_Vh[:, :, ii],
+            levels=32,
+            cmap=cmap,
+            norm=CenteredNorm(),
         )
         fig.colorbar(cm, ax=ax)
         ax.set_title(h_labels[ii])
 
         # Visualize the obstacles.
-        for ii, pos in enumerate(obs_info.obs_pos):
-            ax.add_patch(plt.Circle(pos, obs_info.obs_radius[ii], color="C3", alpha=0.5))
+        for px, py, vx, vy, r in EVAL_OBSTACLES:
+            ax.add_patch(plt.Circle((px, py), r, color="C3", alpha=0.5))
 
     fig_path = plot_dir / f"Vh/Vh_{idx:08d}.jpg"
     mkdir(fig_path.parent)
@@ -137,7 +146,9 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
     # hids = [64, 64]
     # hids = [32, 32]
     lr = Constant(3e-4)
-    wd = Constant(5e-2)  # weight decay for nn, increasing it will alleviate overfitting of ncbf
+    wd = Constant(
+        5e-2
+    )  # weight decay for nn, increasing it will alleviate overfitting of ncbf
     n_batches = 1
 
     disc_gamma = 0.85
@@ -155,7 +166,9 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
 
     # Vh_act = "softplus"
     Vh_act = "identity"
-    cfg = TrainOfflineCfg("relu", Vh_act, hids, lr, wd, n_batches, disc_gamma, gae_lambda, ema_step)
+    cfg = TrainOfflineCfg(
+        "relu", Vh_act, hids, lr, wd, n_batches, disc_gamma, gae_lambda, ema_step
+    )
     alg = TrainOfflineDroneAlg.create(jr.PRNGKey(123456), obs_mean, obs_std, nh, cfg)
 
     run = wandb.init(project="ar_drone_offline", config=cfg.asdict())
@@ -168,7 +181,9 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
     plot_dir = mkdir(run_dir / "plot")
     ckpt_dir = mkdir(run_dir / "ckpts")
 
-    ckpt_manager = get_ckpt_manager_sync(ckpt_dir.absolute(), max_to_keep=trainer_cfg.ckpt_max_keep)
+    ckpt_manager = get_ckpt_manager_sync(
+        ckpt_dir.absolute(), max_to_keep=trainer_cfg.ckpt_max_keep
+    )
 
     rng = np.random.default_rng(seed=12345)
     for idx in range(trainer_cfg.n_iters):
@@ -188,7 +203,7 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
 
         if should_eval:
             logger.info("Eval...")
-            data = jax2np(alg.eval(T_obs_eval, Th_h_eval))
+            data = jax2np(alg.eval(T_obs_eval, Th_h_eval, EVAL_OBSTACLES))
             logger.info("Eval... Done!")
             plot_eval(idx, plot_dir, data)
 

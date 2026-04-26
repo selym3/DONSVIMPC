@@ -16,8 +16,13 @@ from ncbf.drone_do_task import get_h_vector_drone, state_to_obs_drone
 from ncbf.dset_offline import DsetOffline, S
 from ncbf.dset_offline_drone import DsetOfflineDrone
 from ncbf.scripts.ncbf_config import get_cfgs
-from robot_planning.helper.convenience import (get_ccrf_track, get_ccrf_track_with_obstacles, get_drone_goal_state,
-                                        get_drone_obstacles, plot_track)
+from robot_planning.helper.convenience import (
+    get_ccrf_track,
+    get_ccrf_track_with_obstacles,
+    get_drone_goal_state,
+    get_drone_obstacles,
+    plot_track,
+)
 
 
 def main(pkl_path: pathlib.Path):
@@ -33,7 +38,7 @@ def main(pkl_path: pathlib.Path):
 
     # For plotting
     plot_dir = pkl_path.parent
-    obs_info = get_drone_obstacles() # NOTE: will be wrong. BE WARNED
+    # obs_info = get_drone_obstacles()  # NOTE: will be wrong. BE WARNED
 
     goal_state = get_drone_goal_state()
     # NOTE: for generality, *should* important a goal checker from a config
@@ -69,7 +74,11 @@ def main(pkl_path: pathlib.Path):
     dset_path = plot_dir / f"dset_drone{tmp}.pkl"
     with open(dset_path, "wb") as f:
         pickle.dump(dset, f, protocol=pickle.HIGHEST_PROTOCOL)
-    logger.info("Saved dset to {}! #Samples = {}, T min={}, max={}".format(dset_path, n_samples, T_min, T_max))
+    logger.info(
+        "Saved dset to {}! #Samples = {}, T min={}, max={}".format(
+            dset_path, n_samples, T_min, T_max
+        )
+    )
 
     # ###############################################################
     # Plot distribution of the states.
