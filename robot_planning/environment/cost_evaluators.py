@@ -233,7 +233,7 @@ class Quadrotor2DCBFCostEvaluator(QuadraticCostEvaluator):
         # [ e_psi e_y s ]
         add_unsafe = ft.partial(self.add_unsafe_eps, margin_lo=cfg.margin_lo, margin_hi=cfg.margin_hi)
 
-        h_track = -10*state_cartesian[1] # making height > 0 to be safe TODO: the coefficient needs to be tuned
+        h_track = 0 # -10*state_cartesian[1] # making height > 0 to be safe TODO: the coefficient needs to be tuned
 
         h_track = self.get_h_with_obstacles(state_cartesian, h_track)
 

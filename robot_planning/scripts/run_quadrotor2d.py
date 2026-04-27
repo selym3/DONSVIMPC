@@ -24,8 +24,8 @@ print(xla_bridge.get_backend().platform)
 
 def main():
     # agent_name = "baseline"
-    # agent_name = "cbf"
-    agent_name = "ncbf"
+    agent_name = "cbf"
+    # agent_name = "ncbf"
 
     config_path = "configs/run_quadrotor2d_dynamic_obstacles.cfg"
     config_data = ConfigParser.ConfigParser()
@@ -48,7 +48,7 @@ def main():
     # while True:
         timer = Timer("Control loop").start()
         state_next_1, cost_1, eval_time_1, action_1 = agent1.take_action_with_controller(return_time=True)
-        print("agent 1 current state: ", state_next_1)
+        # print("agent 1 current state: ", state_next_1)
         # timer.stop().print_results()
         timer.stop().print_control_freq_result()
 

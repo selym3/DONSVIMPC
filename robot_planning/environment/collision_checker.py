@@ -332,13 +332,30 @@ class Quadrotor2DCollisionChecker(CollisionChecker):
             return collisions
 
     def check_collisions_with_boundaries(self, state_cur):
-        # ipdb.set_trace()
-        is_oob = (state_cur[1] < 0)
+        # Define the bounds
+        # x_min, x_max = -4.0, 11.0
+        # y_min, y_max = 0.0, 1.5
+
+        x_min, x_max = -4.0, 11.0
+        y_min, y_max = 0.75, 1.3
+
+        # Check if X is out of bounds
+        oob_x = (state_cur[0] < x_min) | (state_cur[0] > x_max)
+        
+        # Check if Y is out of bounds
+        oob_y = (state_cur[1] < y_min) | (state_cur[1] > y_max)
+
+        # Combined Out of Bounds (True if either X or Y is outside)
+        is_oob = oob_x | oob_y
+
+        # OLD VERSION:
+        # is_oob = (state_cur[1] < 0)
+
         if state_cur.ndim == 1:
-            # Single state. (6, )
-            return is_oob
+            # Returns a single boolean for (6, )
+            return bool(is_oob)
         else:
-            # Trajectory. (6, T)
+            # Returns an array of 1s and 0s for (6, T)
             collisions = np.where(is_oob, 1, 0)
             return collisions
 
