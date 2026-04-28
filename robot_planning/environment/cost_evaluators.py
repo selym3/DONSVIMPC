@@ -231,23 +231,25 @@ class Quadrotor2DCBFCostEvaluator(QuadraticCostEvaluator):
         # [ vx vy wz wF wR ]
         assert state_cartesian.shape == (6,)
         # [ e_psi e_y s ]
-        add_unsafe = ft.partial(self.add_unsafe_eps, margin_lo=cfg.margin_lo, margin_hi=cfg.margin_hi)
+        h_obstacles = self.add_unsafe_eps(self.get_h_with_obstacles(state_cartesian), cfg.margin_lo, cfg.margin_hi)
 
-        h_track = 0 # -10*state_cartesian[1] # making height > 0 to be safe TODO: the coefficient needs to be tuned
+        cc = self.collision_checker
+        x_min, x_max = cc.x_min, cc.x_max
+        y_min, y_max = cc.y_min, cc.y_max
+        
+        x = state_cartesian[0]
+        y = state_cartesian[1]
+        h_boundary = jnp.max(jnp.array([x - x_max, x_min - x, y - y_max, y_min - y]))
+        h_boundary = self.add_unsafe_eps(h_boundary, cfg.margin_lo, cfg.margin_hi)
 
-        h_track = self.get_h_with_obstacles(state_cartesian, h_track)
+        return {"obstacles": h_obstacles, "boundary": h_boundary}
 
-        h_track = add_unsafe(h_track)
-
-        return {"track": h_track}
-
-    def get_h_with_obstacles(self, state_cartesian, h):
+    def get_h_with_obstacles(self, state_cartesian):
         state_cartesian = state_cartesian[:2]
         distance_to_obstacles = jnp.linalg.norm(self.obstacles - state_cartesian, axis=1)
         obstacles_danger = self.obstacles_radius ** 2 - distance_to_obstacles ** 2
         obstacles_danger = jnp.max(obstacles_danger)
-        h_with_obstacles = jnp.where(obstacles_danger > h, obstacles_danger, h)
-        return h_with_obstacles
+        return obstacles_danger
 
     def evaluate_cost(self, state_cur, state_next, action, noise, dynamics: AutoRallyDynamics):
         """

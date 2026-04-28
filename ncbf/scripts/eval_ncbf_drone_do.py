@@ -29,9 +29,9 @@ import os
 H_LABELS = ["obs", "boundary", "drone_angle", "px_left"]
 
 
-def load_config_for_obstacles():
+def load_from_config():
     config_path = (
-        "../../robot_planning/scripts/configs/run_quadrotor2d_dynamic_obstacles.cfg"
+        "robot_planning/scripts/configs/run_quadrotor2d_dynamic_obstacles.cfg"
     )
     config_data = ConfigParser.ConfigParser()
     config_data.read(config_path)
@@ -58,7 +58,9 @@ def load_config_for_obstacles():
         [obstacles, twod_obstacle_velocities, obstacles_radius.reshape(-1, 1)], axis=1
     )
 
-    return obstacle_info
+    cc = collision_checker
+
+    return obstacle_info, [cc.x_min, cc.x_max, cc.y_min, cc.y_min]
 
 
 def compute_Vh_grid(alg: TrainOfflineDroneAlg, eval_obstacles: jnp.ndarray):
@@ -87,15 +89,19 @@ def compute_Vh_grid(alg: TrainOfflineDroneAlg, eval_obstacles: jnp.ndarray):
     return bb_pos, bbh_Vh
 
 
-def plot_Vh(bb_pos, bbh_Vh, eval_obstacles, fig_path: pathlib.Path):
+def plot_Vh(bb_pos, bbh_Vh, eval_obstacles, eval_bounds, fig_path: pathlib.Path):
     nh = bbh_Vh.shape[2]
-    figsize = np.array([8.0, nh * 3.0])
-    fig, axes = plt.subplots(nh, dpi=300, figsize=figsize)
-    [ax.set_aspect("equal") for ax in axes]
+    assert nh == 4
+    # figsize = np.array([8.0, nh * 3.0])
+    fig, axs = plt.subplots(nrows=2, ncols=2)
+    fig.set_size_inches(12, 8)
+    # fig, axes = plt.subplots(nh, dpi=300, figsize=figsize)
+    for ax in axs.ravel():
+        ax.set_aspect("equal")
 
     cmap = get_BuRd()
 
-    for ii, ax in enumerate(axes):
+    for ii, ax in enumerate(axs.ravel()):
         cm = ax.contourf(
             bb_pos[:, :, 0],
             bb_pos[:, :, 1],
@@ -106,10 +112,10 @@ def plot_Vh(bb_pos, bbh_Vh, eval_obstacles, fig_path: pathlib.Path):
         )
         fig.colorbar(cm, ax=ax)
         ax.set_title(H_LABELS[ii] if ii < len(H_LABELS) else f"h{ii}")
+        xmin, xmax, ymin, ymax = eval_bounds
+        ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax])
 
-        print(eval_obstacles)
         for px, py, vx, vy, r in eval_obstacles:
-            print(px, py)
             ax.add_patch(
                 plt.Circle((float(px), float(py)), float(r), color="C3", alpha=0.5)
             )
@@ -134,14 +140,16 @@ def main(ckpt_path: pathlib.Path):
     alg: TrainOfflineDroneAlg = ckpt_dict["alg"]
     logger.info("Loaded ckpt from {}! update_idx={}".format(ckpt_path, alg.update_idx))
 
-    eval_obstacles = jnp.array(load_config_for_obstacles())
+    raw_obstacles, raw_bounds = load_from_config()
+    eval_obstacles = jnp.array(raw_obstacles)
+    eval_bounds = jnp.array(raw_bounds)
 
     bb_pos, bbh_Vh = jax2np(compute_Vh_grid(alg, eval_obstacles))
 
     fig_path = ckpt_path.parent.parent.parent / "Vh_{}.jpg".format(
         ckpt_path.parent.name
     )
-    plot_Vh(bb_pos, bbh_Vh, eval_obstacles, fig_path)
+    plot_Vh(bb_pos, bbh_Vh, eval_obstacles, eval_bounds, fig_path)
 
 
 if __name__ == "__main__":

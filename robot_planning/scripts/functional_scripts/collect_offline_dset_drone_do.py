@@ -122,103 +122,21 @@ def main():
         collision_checker_for_failure: Quadrotor2DCollisionChecker = (
             logger.collision_checker
         )
+        cc = collision_checker_for_failure
 
         # print("               ===== {:3} / {:3} =====            ".format(traj_idx + 1, n_trajs_collect))
         start_state = onp.array([-4, 1.0, 0.0, 0.0, 0.0, 0.0])
-
+        
+        # Randomize start state
         if traj_idx > 0:
-            assert prev_status is not None
+            x_min, x_max = cc.x_min, cc.x_max
+            y_min, y_max = cc.y_min, cc.y_max
+            x_rand = onp.random.rand() * (x_max - x_min) + x_min
+            y_rand = onp.random.rand() * (y_max - y_min) + y_min
 
-            if prev_status == "success":
-                # Probability of sampling from the narrow corridor.
-                p_corridor = 0.5
+            start_state = onp.array([x_rand, y_rand, 0.0, 0.0, 0.0, 0.0])
+        ################
 
-                if p_corridor:
-                    # Get all the indices where -1 <= px <= 3.
-                    kk_corridor = onp.where((T_x[0, :] >= -1) & (T_x[0, :] <= 3))[0]
-
-                    if len(kk_corridor) > 0:
-                        kk_random = rng.choice(kk_corridor)
-                    else:
-                        loguru.logger.warning(
-                            "No corridor samples found. Sampling randomly."
-                        )
-                        kk_random = rng.integers(0, len(T_x))
-
-                    # Use a tiny position perturbation.
-                    noise_std = onp.array([0.001, 0.001, 0.001, 0.5, 0.5, 0.5])
-                else:
-                    # Just sample randomly.
-                    n_from_end = 20
-
-                    lo = 0
-                    hi = max(1, len(T_x) - n_from_end)
-                    kk_random = rng.integers(lo, hi)
-                    noise_std = onp.array([0.1, 0.1, 0.1, 0.5, 0.5, 0.5])
-
-            elif prev_status == "crash":
-                n_from_end = 5
-
-                lo = 0
-                hi = max(1, len(T_x) - n_from_end)
-                kk_random = rng.integers(lo, hi)
-                noise_std = onp.array([0.1, 0.1, 0.1, 0.5, 0.5, 0.5])
-            else:
-                raise ValueError(f"Unknown prev_status: {prev_status}")
-
-            p_start_prev = 0.2
-            start_prev = rng.binomial(1, p_start_prev)
-
-            # Don't start_prev if the previous traj was a crash and it was very short
-            dont_start_prev = (prev_status == "crash") and (len(T_x) < 10)
-            start_prev = start_prev and (not dont_start_prev)
-
-            if start_prev:
-                loguru.logger.info("start prev")
-                # Sample a random state from the previous traj and perturb it.
-
-                # (nx, )
-                x = T_x[:, kk_random]
-            else:
-                loguru.logger.info("start random")
-
-                buffer = np.deg2rad(2)
-                lo = onp.array([-4.5, 0.2, -np.pi / 2 + buffer, -1.0, -0.5, 1.0])
-                hi = onp.array([-1.5, 1.0, np.pi / 2 - buffer, 9.0, 0.5, 1.0])
-
-                # lo = onp.array([2.0, 0.2, -np.pi / 2 + buffer, -1.0, -0.5, 1.0])
-                # hi = onp.array([4.0, 1.0, np.pi / 2 - buffer, 3.0, 0.5, 1.0])
-
-                x = rng.uniform(lo, hi)
-                invalid_x0 = False
-                while invalid_x0:
-                    x = rng.uniform(lo, hi)
-                    invalid_x0 = collision_checker_for_failure.check(x)
-                print("out of loop")
-
-            if start_prev:
-                # start_state = x
-                # Add some noise.
-                has_collided = True
-                num_attempts = 0
-                print("in loop2")
-                while has_collided and num_attempts < 1000:
-                    start_state = x + rng.normal(0.0, noise_std)
-                    has_collided = collision_checker_for_failure.check(start_state)
-                    num_attempts += 1
-                print("out of loop2")
-
-                # With some probability, scale the velocity with random multipliers.
-                p_scale_vel = 0.1
-                scale_vel = rng.binomial(1, p_scale_vel)
-                if scale_vel:
-                    vel_scale = rng.uniform(0.9, 1.1, size=(2,))
-                    start_state[3:5] *= vel_scale
-
-                    # clip the velocity
-                    start_state[3:5] = onp.clip(start_state[3:5], -10.0, 10.0)
-            else:
-                start_state = x
 
         agent.reset_state(np.array(start_state))
         agent.reset_controller()

@@ -288,6 +288,10 @@ class Quadrotor2DCollisionChecker(CollisionChecker):
         self.obstacles_radius = np.asarray(ast.literal_eval(config_data.get(section_name, "obstacles_radius")))
         self.obstacles_velocity = np.asarray(ast.literal_eval(config_data.get(section_name, "obstacles_velocity")))
         self.obstacle_paths = np.asarray(ast.literal_eval(config_data.get(section_name, "obstacles_path")))
+        self.x_min = ast.literal_eval(config_data.get(section_name, "x_min"))
+        self.y_min = ast.literal_eval(config_data.get(section_name, "y_min"))
+        self.x_max = ast.literal_eval(config_data.get(section_name, "x_max"))
+        self.y_max = ast.literal_eval(config_data.get(section_name, "y_max"))
 
         kinematics_section_name = config_data.get(section_name, "kinematics")
         self.kinematics = factory_from_config(
@@ -333,11 +337,9 @@ class Quadrotor2DCollisionChecker(CollisionChecker):
 
     def check_collisions_with_boundaries(self, state_cur):
         # Define the bounds
-        # x_min, x_max = -4.0, 11.0
-        # y_min, y_max = 0.0, 1.5
-
-        x_min, x_max = -4.0, 11.0
-        y_min, y_max = 0.75, 1.3
+        # x_min, x_max = -100, 100
+        x_min, x_max = self.x_min, self.x_max
+        y_min, y_max = self.y_min, self.y_max
 
         # Check if X is out of bounds
         oob_x = (state_cur[0] < x_min) | (state_cur[0] > x_max)
@@ -347,6 +349,7 @@ class Quadrotor2DCollisionChecker(CollisionChecker):
 
         # Combined Out of Bounds (True if either X or Y is outside)
         is_oob = oob_x | oob_y
+        # is_oob = oob_y
 
         # OLD VERSION:
         # is_oob = (state_cur[1] < 0)
