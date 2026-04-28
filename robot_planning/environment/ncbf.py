@@ -21,9 +21,12 @@ from ncbf.ar_task import ConstrCfg, ObsCfg, get_h_vector, state_to_obs
 from ncbf.offline.train_offline_alg import TrainOfflineAlg, TrainOfflineCfg
 from ncbf.scripts.ncbf_config import get_cfgs, get_h_cfg_for
 from robot_planning.controllers.MPPI.stochastic_trajectories_sampler import MPPIStochasticTrajectoriesSampler
-from robot_planning.environment.cost_evaluators import AutorallyMPPICostEvaluator
+from robot_planning.environment.cost_evaluators import AutorallyMPPICostEvaluator, Quadrotor2DCBFCostEvaluator
+from robot_planning.environment.collision_checker import Quadrotor2DCollisionChecker
 from robot_planning.environment.dynamics.autorally_dynamics.autorally_dynamics import AutoRallyDynamics
 from robot_planning.helper.path_utils import get_commit_ckpt_dir, get_runs_dir
+from robot_planning.environment.obstacle_dynamics import ObstacleDynamics, LinearObstacleDynamics
+from robot_planning.environment.do_ncbf_quadrotor import QuadrotorMPPIDynamicObstacleNCBFCostEvaluator
 
 
 class SamplerResult(NamedTuple):
@@ -422,7 +425,7 @@ class MPPINCBFStochasticTrajectoriesSampler(MPPIStochasticTrajectoriesSampler):
         control_horizon: int,
         control_dim: int,
         dynamics: AutoRallyDynamics,
-        cost_evaluator: AutorallyMPPINCBFCostEvaluator,
+        cost_evaluator: Quadrotor2DCBFCostEvaluator,
         control_bounds=None,
         ncbf_weights=None,
     ) -> DetailedSamplerResult:
@@ -457,12 +460,33 @@ class MPPINCBFStochasticTrajectoriesSampler(MPPIStochasticTrajectoriesSampler):
         cost_fn = ft.partial(cost_evaluator.evaluate_cost, dynamics=dynamics, ncbf_weights=ncbf_weights)
         term_cost_fn = ft.partial(cost_evaluator.evaluate_terminal_cost, dynamics=dynamics)
 
+        og_collision_checker = cost_evaluator.collision_checker
+        obstacle_dynamics: ObstacleDynamics = LinearObstacleDynamics(og_collision_checker.obstacle_paths, dynamics.get_delta_t())
+
         def body(trajstate, bu_controlnoise):
-            bx_state, b_cost, Tp1bx_state_, Tbu_control_ = trajstate
+            bx_state, obstacle_positions, obstacle_velocities, b_cost, Tp1bx_state_, Tbu_control_ = trajstate
             ii, bu_control, bu_noise = bu_controlnoise
             bx_state_next = vmap_prop(bx_state, bu_control)
 
-            b_cost_run, b_unsafe, info = jax.vmap(cost_fn)(bx_state, bx_state_next, bu_control, bu_noise)
+            _collision_checker = Quadrotor2DCollisionChecker()
+            _collision_checker.obstacles = obstacle_positions
+            _collision_checker.obstacles_radius = og_collision_checker.obstacles
+            _collision_checker.obstacles_velocity = obstacle_velocities
+            _collision_checker.obstacle_paths = og_collision_checker.obstacle_paths
+            _collision_checker.x_min = og_collision_checker.x_min
+            _collision_checker.y_min = og_collision_checker.y_min
+            _collision_checker.x_max = og_collision_checker.x_max
+            _collision_checker.y_max = og_collision_checker.y_max
+
+            _cost_evaluator = QuadrotorMPPIDynamicObstacleNCBFCostEvaluator(
+                goal_checker=cost_evaluator.goal_checker,
+                collision_checker=_collision_checker,
+                Q=cost_evaluator.Q,
+                R=cost_evaluator.R,
+                collision_cost=cost_evaluator.collision_cost,
+                goal_cost=cost_evaluator.goal_cost)
+
+            b_cost_run, b_unsafe, info = jax.vmap(ft.partial(_cost_evaluator.evaluate_cost, dynamics=dynamics, ncbf_weights=ncbf_weights))(bx_state, bx_state_next, bu_control, bu_noise)
             b_cost_next = b_cost + b_cost_run
 
             # bh_Vh_next = info["h_Vh_next"]
@@ -509,15 +533,17 @@ class MPPINCBFStochasticTrajectoriesSampler(MPPIStochasticTrajectoriesSampler):
                 "p_safe": 1.0 - jnp.mean(b_unsafe),
             }
 
-            trajstate_new = (bx_state_next_resam, b_cost_next_resam, Tp1bx_state_resam, Tbu_control_resam)
+            obstacle_positions, obstacle_velocities = obstacle_dynamics.step(obstacle_positions, obstacle_velocities)
+
+            trajstate_new = (bx_state_next_resam, obstacle_positions, obstacle_velocities, b_cost_next_resam, Tp1bx_state_resam, Tbu_control_resam)
             return trajstate_new, info_
 
         Tp1bx_state = ei.repeat(bx_state0, "b nx -> T b nx", T=control_horizon)
-        trajstate0 = (bx_state0, jnp.zeros((self.n_traj, 1, 1)), Tp1bx_state, Tbu_control)
+        trajstate0 = (bx_state0, og_collision_checker.obstacles, og_collision_checker.obstacles_velocity, jnp.zeros((self.n_traj, 1, 1)), Tp1bx_state, Tbu_control)
         inp = jnp.arange(control_horizon - 1), Tbu_control, Tbu_noise
         trajstate, scan_info = lax.scan(body, trajstate0, inp, length=control_horizon - 1, unroll=8)
 
-        _, b11_cost, Tp1bx_state, Tbu_control_new = trajstate
+        _, final_obstacles_position, final_obstacles_velocity, b11_cost, Tp1bx_state, Tbu_control_new = trajstate
         del Tbu_control
 
         # (control_horizon, batch, nx)
@@ -530,7 +556,26 @@ class MPPINCBFStochasticTrajectoriesSampler(MPPIStochasticTrajectoriesSampler):
         b11_cost = jnp.sum(Tb11_cost, axis=0)
 
         #       This assumes a batch dimension at the end.
-        b_cost_term = jax.vmap(term_cost_fn)(bx_state_last[:, :, None]).squeeze(-1)
+
+        _collision_checker = Quadrotor2DCollisionChecker()
+        _collision_checker.obstacles = final_obstacles_position
+        _collision_checker.obstacles_radius = og_collision_checker.obstacles
+        _collision_checker.obstacles_velocity = final_obstacles_velocity
+        _collision_checker.obstacle_paths = og_collision_checker.obstacle_paths
+        _collision_checker.x_min = og_collision_checker.x_min
+        _collision_checker.y_min = og_collision_checker.y_min
+        _collision_checker.x_max = og_collision_checker.x_max
+        _collision_checker.y_max = og_collision_checker.y_max
+
+        _cost_evaluator = Quadrotor2DCBFCostEvaluator(cbf_alpha=cost_evaluator.cbf_alpha,
+            goal_checker=cost_evaluator.goal_checker,
+            collision_checker=_collision_checker,
+            Q=cost_evaluator.Q,
+            R=cost_evaluator.R,
+            collision_cost=cost_evaluator.collision_cost,
+            goal_cost=cost_evaluator.goal_cost)
+
+        b_cost_term = jax.vmap(ft.partial(_cost_evaluator.evaluate_terminal_cost, dynamics=dynamics))(bx_state_last[:, :, None]).squeeze(-1)
         b11_cost = b11_cost + b_cost_term
         assert b11_cost.shape == (self.n_traj, 1, 1)
 
@@ -554,108 +599,3 @@ class MPPINCBFStochasticTrajectoriesSampler(MPPIStochasticTrajectoriesSampler):
         result = SamplerResult(bxT_state, buT_control, b11_cost)
         return DetailedSamplerResult(result, info)
 
-class MPPINCBFStochasticTrajectoriesSamplerInefficient(MPPINCBFStochasticTrajectoriesSampler):
-    def __init__(self, *args, **kwargs):
-        MPPINCBFStochasticTrajectoriesSampler.__init__(self, *args, **kwargs)
-
-    def sample(
-        self,
-        state_cur,
-        v,
-        control_horizon: int,
-        control_dim: int,
-        dynamics: AutoRallyDynamics,
-        cost_evaluator: AutorallyMPPINCBFCostEvaluator,
-        control_bounds=None,
-        opponent_agents=None,
-    ):
-        detailed_result = self._sample(
-            state_cur, v, control_horizon, control_dim, dynamics, cost_evaluator, control_bounds, self.ncbf_weights
-        )
-        return detailed_result.result
-
-    @ft.partial(jax.jit, static_argnames=("self", "control_horizon", "control_dim", "dynamics", "cost_evaluator"))
-    def _sample(
-            self,
-            state_cur,
-            v,
-            control_horizon: int,
-            control_dim: int,
-            dynamics: AutoRallyDynamics,
-            cost_evaluator: AutorallyMPPINCBFCostEvaluator,
-            control_bounds=None,
-            ncbf_weights=None,
-    ) -> DetailedSamplerResult:
-        """
-        :param state_cur: Current state. (nx, ) = (8, )
-        :param v: Current nominal control sequence. (nu, control_horizon - 1) = (2, 19)
-        :param control_horizon:
-        :param control_dim:
-        :param dynamics:
-        :param cost_evaluator:
-        :param control_bounds: (2, nu) = (2, 2)
-        :return:
-        """
-        uT_v = v
-
-        assert self.uncontrolled_trajectories_portion == 0.0
-        # (nu, (control_horizon - 1) * n_trajs)
-        ub_noise = self.noise_sampler.sample(control_dim, (control_horizon - 1) * self.n_traj)
-        Tbu_noise = ei.rearrange(ub_noise, "nu (T b) -> T b nu", T=control_horizon - 1, b=self.n_traj)
-
-        Tu_v = ei.rearrange(uT_v, "nu T -> T nu")
-        Tbu_control = Tbu_noise + Tu_v[:, None, :]
-        if control_bounds is not None:
-            lb, ub = control_bounds[0], control_bounds[1]
-            Tbu_control = jnp.clip(Tbu_control, lb, ub)
-
-        # Rollout.
-        bx_state0 = ei.repeat(state_cur, "nx -> b nx", b=self.n_traj)
-        vmap_prop = jax.vmap(dynamics.propagate)
-
-        #   cost fns
-        cost_fn = ft.partial(cost_evaluator.evaluate_cost, dynamics=dynamics, ncbf_weights=ncbf_weights)
-        term_cost_fn = ft.partial(cost_evaluator.evaluate_terminal_cost, dynamics=dynamics)
-
-        def body(trajstate, bu_controlnoise):
-            bx_state, b_cost, Tp1bx_state_, Tbu_control_ = trajstate
-            ii, bu_control, bu_noise = bu_controlnoise
-            bx_state_next = vmap_prop(bx_state, bu_control)
-
-            b_cost_run, b_unsafe, info = jax.vmap(cost_fn)(bx_state, bx_state_next, bu_control, bu_noise)
-            b_cost_next = b_cost + b_cost_run
-
-            # Set the control and histories to the original, non-resampled versions.
-            Tbu_control_ = Tbu_control_.at[ii].set(bu_control)
-            Tp1bx_state_ = Tp1bx_state_.at[ii + 1].set(bx_state_next)
-
-            info_ = {
-                "p_safe": 1.0 - jnp.mean(b_unsafe),
-            }
-
-            trajstate_new = (bx_state_next, b_cost_next, Tp1bx_state_, Tbu_control_)
-            return trajstate_new, info_
-
-        Tp1bx_state = ei.repeat(bx_state0, "b nx -> T b nx", T=control_horizon)
-        trajstate0 = (bx_state0, jnp.zeros((self.n_traj, 1, 1)), Tp1bx_state, Tbu_control)
-        inp = jnp.arange(control_horizon - 1), Tbu_control, Tbu_noise
-        trajstate, scan_info = lax.scan(body, trajstate0, inp, length=control_horizon - 1, unroll=8)
-
-        _, b11_cost, Tp1bx_state, Tbu_control_new = trajstate
-        del Tbu_control
-
-        bx_state_last = Tp1bx_state[-1]
-        #       This assumes a batch dimension at the end.
-        b_cost_term = jax.vmap(term_cost_fn)(bx_state_last[:, :, None]).squeeze(-1)
-        b11_cost = b11_cost + b_cost_term
-        assert b11_cost.shape == (self.n_traj, 1, 1)
-
-        # Reshape for output.
-        bxT_state = ei.rearrange(Tp1bx_state, "T b nx -> b nx T")
-        buT_control = ei.rearrange(Tbu_control_new, "T b nu -> b nu T")
-
-        T_psafe = scan_info["p_safe"]
-        info = {"T_psafe": T_psafe}
-
-        result = SamplerResult(bxT_state, buT_control, b11_cost)
-        return DetailedSamplerResult(result, info)
