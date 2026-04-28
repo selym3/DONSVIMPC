@@ -46,7 +46,7 @@ def main(pkl_path: pathlib.Path):
 
     ###############################################################
     bT_obs, bTh_h, bT_x, bT_terminal = [], [], [], []
-    for xT_x, TN_obs in tqdm.tqdm(zip(bxT_x, bTN_o)):
+    for xT_x, TN_obs in tqdm.tqdm(zip(bxT_x, bTN_o), total=len(bTN_o)):
         T_x = xT_x.T
         T_obs = jax_jit_np(jax_vmap(state_to_obs_drone))(T_x, TN_obs)
         Th_h = jax_jit_np(jax_vmap(get_h_vector_drone))(T_x, TN_obs)

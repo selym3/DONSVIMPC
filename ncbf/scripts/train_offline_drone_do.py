@@ -38,7 +38,7 @@ class TrainerCfg(Cfg):
     ckpt_max_keep: int = 100
 
 
-def plot_eval(idx: int, plot_dir: pathlib.Path, data: TrainOfflineDroneAlg.EvalData):
+def plot_eval(idx: int, plot_dir: pathlib.Path, data: TrainOfflineDroneAlg.EvalData, eval_obstacles):
     nh = data.bbh_Vh.shape[2]
     figsize = np.array([8.0, nh * 3.0])
     fig, axes = plt.subplots(nh, dpi=300, figsize=figsize)
@@ -61,7 +61,7 @@ def plot_eval(idx: int, plot_dir: pathlib.Path, data: TrainOfflineDroneAlg.EvalD
         ax.set_title(h_labels[ii])
 
         # Visualize the obstacles.
-        for px, py, vx, vy, r in EVAL_OBSTACLES:
+        for px, py, vx, vy, r in eval_obstacles:
             ax.add_patch(plt.Circle((px, py), r, color="C3", alpha=0.5))
 
     fig_path = plot_dir / f"Vh/Vh_{idx:08d}.jpg"
@@ -110,7 +110,7 @@ from robot_planning.factory.factory_from_config import factory_from_config
 
 def load_config_for_obstacles():
     config_path = (
-        "../../robot_planning/scripts/configs/run_quadrotor2d_dynamic_obstacles.cfg"
+        "robot_planning/scripts/configs/run_quadrotor2d_dynamic_obstacles.cfg"
     )
     config_data = ConfigParser.ConfigParser()
     config_data.read(config_path)
@@ -236,7 +236,7 @@ def main(dset_path: pathlib.Path, wandb_name: str = None):
             logger.info("Eval...")
             data = jax2np(alg.eval(T_obs_eval, Th_h_eval, eval_obstacles))
             logger.info("Eval... Done!")
-            plot_eval(idx, plot_dir, data)
+            plot_eval(idx, plot_dir, data, eval_obstacles)
 
             log_dict = {f"eval/{k}": v for k, v in data.info.items()}
             wandb.log(log_dict, step=idx)

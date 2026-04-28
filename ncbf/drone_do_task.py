@@ -84,8 +84,12 @@ def get_h_components(state, obstacles):
     h_obs = jnp.clip(h_obs, -1.0, 0.0)
 
     # z >= 0, -z <= 0
-    h_boundary = -pz  # should be approx [-1, 1] ?
-
+    x_min = -4.0 # NOTE: atrociously copied from the config
+    x_max = 11.0
+    y_min = 0.75
+    y_max = 1.3
+    h_boundary = jnp.max(jnp.array([px - x_max, x_min - px, pz - y_max, y_min - pz]))
+    
     # is_oob = (theta < -np.pi / 2) | (np.pi / 2 < theta)
     h_drone_angle = jnp.abs(theta) - np.pi / 2
     h_drone_angle = h_drone_angle / (np.pi / 2)  # scale to [-1, 1]
@@ -97,14 +101,6 @@ def get_h_components(state, obstacles):
     def f(h_):
         eps = 0.3
         return jnp.where(h_ < 0, h_ - eps, 1.0)
-
-    # jax.debug.print(
-    #     "pos2d: {}\nobstacle_positions: {}\no_dist: {}\nf(h_obs): {}",
-    #     pos2d,
-    #     obstacle_positions,
-    #     o_dist,
-    #     f(h_obs),
-    # )
 
     return {
         "obs": f(h_obs),
